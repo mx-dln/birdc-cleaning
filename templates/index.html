@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <title>Data Cleaning App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f7fa;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    input[type="text"],
+    input[type="file"],
+    select {
+      padding: 10px;
+      margin: 5px 5px 15px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      min-width: 180px;
+      font-size: 14px;
+    }
+
+    button {
+      background-color: #007bff;
+      border: none;
+      color: white;
+      padding: 10px 16px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      margin: 5px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #output {
+      white-space: pre-wrap;
+      background: #fff;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-top: 20px;
+      overflow-x: auto;
+      max-height: 500px;
+    }
+
+    table.dataframe,
+    #output table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 15px;
+    }
+
+    table.dataframe th,
+    table.dataframe td,
+    #output table th,
+    #output table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    table.dataframe th,
+    #output table th {
+      background-color: #f1f1f1;
+    }
+
+    #chart img {
+      max-width: 100%;
+      height: auto;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 768px) {
+
+      input[type="text"],
+      select {
+        min-width: 100%;
+        margin-bottom: 10px;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+
+  <style>
+    table.dataframe {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    table.dataframe th,
+    table.dataframe td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    table.dataframe th {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>BIRD C Data Cleaning App</h1>
+
+  <input type="file" id="fileInput" />
+  <button onclick="uploadCSV()">Import CSV</button>
+  <button onclick="loadSample()">Load Sample</button>
+  <button onclick="window.location.href='/export_csv'">Export CSV</button>
+  <button onclick="window.location.href='/export_excel'">Export Excel</button>
+
+  <hr />
+  <button onclick="callAction('standardize_text')">Standardize</button>
+  <button onclick="removeDuplicatesSelected()">Remove Duplicates</button>
+  <input type="text" id="dupColumn" placeholder="Enter Column Name" style="height: 20px;" />
+  <button onclick="callAction('missing_values')">Check Missing Values</button>
+  <button onclick="callAction('remove_special_chars')">Remove Special Characters</button>
+  <button onclick="callAction('drop_missing')">Remove Rows with Missing Values</button>
+  <button onclick="callAction('fill_missing')">Replace Missing with 0</button>
+  <input type="text" id="dtypeColumn" placeholder="Column name" style="height: 20px;" />
+  <select id="dtypeSelect">
+    <option value="int">int</option>
+    <option value="float">float</option>
+    <option value="str">str</option>
+    <option value="bool">bool</option>
+    <option value="category">category</option>
+  </select>
+  <button onclick="changeDtype()">Change Data Type</button>
+
+  <br /><br />
+
+  <!-- Replace Values -->
+  <input type="text" id="replaceColumn" placeholder="Column name" style="height: 20px;" />
+  <input type="text" id="replaceFrom" placeholder="From value" style="height: 20px;" />
+  <input type="text" id="replaceTo" placeholder="To value" style="height: 20px;" />
+  <button onclick="replaceValues()">Replace Values</button>
+
+
+
+  <!-- Rename Column -->
+  <input type="text" id="renameOld" placeholder="Old column name" style="height: 20px;" />
+  <input type="text" id="renameNew" placeholder="New column name" style="height: 20px;" />
+  <button onclick="renameColumn()">Rename Column</button>
+
+
+  <!-- Drop Column -->
+  <input type="text" id="dropColumn" placeholder="Column name" style="height: 20px;" />
+  <button onclick="dropColumn()">Drop Column</button>
+
+
+
+  <div id="output"></div>
+  <div id="chart">
+    <img id="chartImage" src="" alt="" />
+  </div>
+
+
+  <script>
+    function callAction(action) {
+      fetch(`/${action}`)
+        .then((res) => res.text())
+        .then((data) => {
+          if (action.includes('chart')) {
+            const imgPath = `/static/${action === 'bar_chart' ? 'bar_chart.png' : 'pie_chart.png'}`;
+            document.getElementById('chartImage').src = imgPath + `?t=${new Date().getTime()}`;
+            document.getElementById('output').innerText = data;
+          } else if (action === 'missing_values') {
+            fetch('/missing_values')
+              .then((res) => res.json())
+              .then((json) => document.getElementById('output').innerText = JSON.stringify(json, null, 2));
+          } else {
+            document.getElementById('output').innerHTML = data; // <-- FIXED
+          }
+        });
+    }
+    function uploadCSV() {
+      const fileInput = document.getElementById('fileInput');
+      if (!fileInput.files.length) {
+        alert("Please select a CSV file to upload.");
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      fetch('/load_csv', {
+        method: 'POST',
+        body: formData,
+      })
+        .then((res) => res.text())
+        .then((data) => {
+          document.getElementById('output').innerHTML = data;
+          $('#output table').DataTable({
+            pageLength: 20,
+            scrollX: true,
+            paging: true
+          });
+        });
+    }
+    function loadSample() {
+      fetch('/load_sample')
+        .then((res) => res.text())
+        .then((data) => {
+          document.getElementById('output').innerHTML = data; // <-- FIXED
+        });
+    }
+    function removeDuplicatesSelected() {
+      const col = document.getElementById('dupColumn').value.trim();
+      if (!col) {
+        alert('Please enter a column name.');
+        return;
+      }
+      fetch(`/remove_duplicates_by_column?column=${encodeURIComponent(col)}`)
+        .then(res => res.text())
+        .then(data => {
+          document.getElementById('output').innerHTML = data;
+        });
+    }
+    function changeDtype() {
+      const column = document.getElementById('dtypeColumn').value.trim();
+      const dtype = document.getElementById('dtypeSelect').value;
+      if (!column) {
+        alert('Please enter a column name.');
+        return;
+      }
+      fetch(`/change_dtype?column=${encodeURIComponent(column)}&dtype=${encodeURIComponent(dtype)}`)
+        .then(res => res.text())
+        .then(data => {
+          document.getElementById('output').innerHTML = data;
+        });
+    }
+
+    function replaceValues() {
+      const column = document.getElementById('replaceColumn').value.trim();
+      const from = document.getElementById('replaceFrom').value;
+      const to = document.getElementById('replaceTo').value;
+      if (!column) {
+        alert('Please enter a column name.');
+        return;
+      }
+      fetch(`/replace_values?column=${encodeURIComponent(column)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
+        .then(res => res.text())
+        .then(data => {
+          document.getElementById('output').innerHTML = data;
+        });
+    }
+
+    function renameColumn() {
+      const oldName = document.getElementById('renameOld').value.trim();
+      const newName = document.getElementById('renameNew').value.trim();
+      if (!oldName || !newName) {
+        alert('Please enter both old and new column names.');
+        return;
+      }
+      fetch(`/rename_column?old=${encodeURIComponent(oldName)}&new=${encodeURIComponent(newName)}`)
+        .then(res => res.text())
+        .then(data => {
+          document.getElementById('output').innerHTML = data;
+        });
+    }
+
+    function dropColumn() {
+      const column = document.getElementById('dropColumn').value.trim();
+      if (!column) {
+        alert('Please enter a column name.');
+        return;
+      }
+      fetch(`/drop_column?column=${encodeURIComponent(column)}`)
+        .then(res => res.text())
+        .then(data => {
+          document.getElementById('output').innerHTML = data;
+        });
+    }
+  </script>
+</body>
+
+</html>
