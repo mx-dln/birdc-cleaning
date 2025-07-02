@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
   <title>Data Cleaning App</title>
   <style>
     body {
@@ -43,7 +44,7 @@
     }
 
     button {
-      background-color: #007bff;
+      background-color: #11c53e;
       border: none;
       color: white;
       padding: 10px 16px;
@@ -130,11 +131,32 @@
     table.dataframe th {
       background-color: #f9f9f9;
     }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #ccc;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    h3 {
+      text-align: center;
+    }
   </style>
 </head>
 
 <body>
-  <h1>BIRD C Data Cleaning App</h1>
+  <h1>DATA CLEANING APP</h1>
 
   <input type="file" id="fileInput" />
   <button onclick="uploadCSV()">Import CSV</button>
@@ -179,6 +201,27 @@
   <!-- Drop Column -->
   <input type="text" id="dropColumn" placeholder="Column name" style="height: 20px;" />
   <button onclick="dropColumn()">Drop Column</button>
+
+
+  <button onclick="showDataProfile()">Show Data Profile</button>
+  <div id="dataProfileModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; overflow:auto;">
+    <div
+      style="background:#fff; margin:5% auto; padding:20px; border-radius:10px; width:80%; max-width:800px; position:relative;">
+      <span onclick="closeModal()"
+        style="position:absolute; top:10px; right:20px; font-size:20px; cursor:pointer;">&times;</span>
+      <div id="modal-body">
+        <!-- Data Profile Content Loads Here -->
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+
+  <button onclick="undoReplace()">Undo Replace</button>
+  <div id="output"></div>
+
 
 
 
@@ -269,7 +312,7 @@
         alert('Please enter a column name.');
         return;
       }
-      fetch(`/replace_values?column=${encodeURIComponent(column)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
+      fetch(`/replace_values?column=${encodeURIComponent(column)}&replace_from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
         .then(res => res.text())
         .then(data => {
           document.getElementById('output').innerHTML = data;
@@ -301,6 +344,30 @@
         .then(data => {
           document.getElementById('output').innerHTML = data;
         });
+    }
+
+    function undoReplace() {
+      fetch('/undo_replace')
+        .then(res => res.text())
+        .then(data => {
+          document.getElementById('output').innerHTML = data;
+        });
+    }
+
+    function showDataProfile() {
+      fetch('/data_profile')
+        .then(response => response.text())
+        .then(html => {
+          document.getElementById('modal-body').innerHTML = html;
+          document.getElementById('dataProfileModal').style.display = 'block';
+        })
+        .catch(error => {
+          alert("Error loading data profile: " + error);
+        });
+    }
+
+    function closeModal() {
+      document.getElementById('dataProfileModal').style.display = 'none';
     }
   </script>
 </body>

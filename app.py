@@ -13,6 +13,7 @@ import html
 app = Flask(__name__)
 uploaded_df = pd.DataFrame()
 
+history_stack = []
 
 def normalize_unicode(df):
     return df.applymap(lambda x: unicodedata.normalize('NFKC', str(x)) if isinstance(x, str) else x)
@@ -222,16 +223,21 @@ def change_dtype():
 
 @app.route('/replace_values')
 def replace_values():
-    global uploaded_df
+    global uploaded_df, history_stack
     column = request.args.get('column')
-    to_replace = request.args.get('from')
+    to_replace = request.args.get('replace_from')
     new_value = request.args.get('to')
 
     if column not in uploaded_df.columns:
         return f"Invalid column: {column}", 400
 
-    uploaded_df[column] = uploaded_df[column].replace(to_replace, new_value)
+    # Save current state before replacing
+    history_stack.append(uploaded_df.copy())
+
+    uploaded_df[column] = uploaded_df[column].astype(str).str.replace(to_replace, new_value, regex=False)
+
     return uploaded_df.to_html() + f"<p><b>Replaced '{to_replace}' with '{new_value}' in '{column}'.</b></p>"
+
 
 
 @app.route('/rename_column')
@@ -247,6 +253,16 @@ def rename_column():
     return uploaded_df.to_html() + f"<p><b>Renamed '{old_name}' to '{new_name}'.</b></p>"
 
 
+@app.route('/undo_replace')
+def undo_replace():
+    global uploaded_df, history_stack
+    if history_stack:
+        uploaded_df = history_stack.pop()
+        return uploaded_df.to_html() + "<p><b>Undo successful.</b></p>"
+    else:
+        return "Nothing to undo.", 400
+
+
 @app.route('/drop_column')
 def drop_column():
     global uploaded_df
@@ -257,6 +273,67 @@ def drop_column():
 
     uploaded_df.drop(columns=[column], inplace=True)
     return uploaded_df.to_html() + f"<p><b>Dropped column '{column}'.</b></p>"
+
+
+@app.route('/data_profile')
+def data_profile():
+    global uploaded_df
+
+    if uploaded_df.empty:
+        return "No data loaded.", 400
+
+    profile = {}
+
+    # Total records
+    profile['Total Records'] = len(uploaded_df)
+
+    # Dynamically check for potential fields
+    for col in uploaded_df.columns:
+        col_lower = col.lower()
+
+        # Missing values
+        missing_count = uploaded_df[col].isnull().sum()
+        if missing_count > 0:
+            profile[f"Missing values in '{col}'"] = missing_count
+
+        # Phone number validation
+        if 'phone' in col_lower:
+            pattern = r'^\+?\d{10,15}$'
+            invalid_phones = uploaded_df[col].apply(
+                lambda x: not bool(re.fullmatch(pattern, str(x))) if pd.notnull(x) else False
+            ).sum()
+            profile[f"Invalid Phone Numbers in '{col}'"] = invalid_phones
+
+        # Email format validation
+        if 'email' in col_lower:
+            pattern = r'^[^@\s]+@[^@\s]+\.[^@\s]+$'
+            invalid_emails = uploaded_df[col].apply(
+                lambda x: not bool(re.fullmatch(pattern, str(x))) if pd.notnull(x) else False
+            ).sum()
+            profile[f"Invalid Emails in '{col}'"] = invalid_emails
+
+        # Country code format check
+        if 'country' in col_lower:
+            nonstandard = uploaded_df[col].apply(
+                lambda x: not bool(re.fullmatch(r'^[A-Za-z]{2,3}$', str(x))) if pd.notnull(x) else False
+            ).sum()
+            profile[f"Non-standard Country Codes in '{col}'"] = nonstandard
+
+        # ID field (check for missing)
+        if 'id' in col_lower:
+            missing_ids = uploaded_df[col].isnull().sum()
+            profile[f"Missing IDs in '{col}'"] = missing_ids
+
+    # Duplicates (on full rows)
+    profile['Duplicate Rows'] = uploaded_df.duplicated().sum()
+
+    # Format HTML table
+    html_output = "<h3>Input Data Profile (Pre-Cleaning)</h3><table border='1'><tr><th>Metric</th><th>Value</th></tr>"
+    for key, value in profile.items():
+        html_output += f"<tr><td>{key}</td><td>{value}</td></tr>"
+    html_output += "</table>"
+
+    return html_output
 
 
 if __name__ == '__main__':
