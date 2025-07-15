@@ -190,6 +190,10 @@
   <input type="text" id="replaceTo" placeholder="To value" style="height: 20px;" />
   <button onclick="replaceValues()">Replace Values</button>
 
+  <input type="text" id="dropTableColumn" placeholder="Column name to drop" style="height: 20px;" />
+  <input type="text" id="dropTableValue" placeholder="Value to drop" style="height: 20px;" />
+  <button onclick="dropValue()">Drop Value</button>
+
 
 
   <!-- Rename Column -->
@@ -364,6 +368,23 @@
         .catch(error => {
           alert("Error loading data profile: " + error);
         });
+    }
+
+    function dropValue() {
+      const column = document.getElementById('dropTableColumn').value;
+      const value = document.getElementById('dropTableValue').value;
+
+      if (!column || !value) {
+        alert("Please enter both column name and value.");
+        return;
+      }
+
+      fetch(`/drop_value?column=${encodeURIComponent(column)}&value=${encodeURIComponent(value)}`)
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('output').innerHTML = data;
+        })
+        .catch(error => console.error('Error:', error));
     }
 
     function closeModal() {
