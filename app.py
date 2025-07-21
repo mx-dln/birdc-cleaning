@@ -87,15 +87,25 @@ def remove_special_chars():
 def load_sample():
     global uploaded_df, history_stack
     uploaded_df = pd.DataFrame({
-        'Name': ['Alice', 'Bob', 'bob', 'ALICE', 'Carol', 'Dave', 'dave', 'Eve', 'eve', 'Frank',
-                 'Grace', 'grace', 'Heidi', 'heidi', 'Ivan', 'IVAN', 'Judy', 'judy', 'Mallory', None],
-        'Age': [25, 30, 30, 25, None, 45, 45, 35, None, 40,
-                29, 29, None, 50, 55, 55, None, 40, 33, 28],
-        'Gender': ['F', 'M', 'M', 'F', 'F', 'M', 'M', 'F', 'F', 'M',
-                   'F', 'F', 'F', None, 'M', 'M', 'F', 'F', None, 'M']
+        'Name': [
+            'Alice', 'Bob', 'bob', 'ALICE', 'Carol', 'Dave', 'dave', 'Eve', 'eve', 'Frank',
+            'Grace', 'grace', 'Heidi', 'heidi', 'Ivan', 'IVAN', 'Judy', 'judy', 'Mallory', None,
+            ' Alice ', '  Bob', 'eve ', 'FRANK', ' frank ', 'Heidi', ' carol ', 'Ivan ', 'JUDY ', 'mallory'
+        ],
+        'Age': [
+            25, 30, 30, 25, None, 45, 45, 35, None, 40,
+            29, 29, None, 50, 55, 55, None, 40, 33, 28,
+            25, 30, 35, 40, 40, None, None, 55, 40, 33
+        ],
+        'Gender': [
+            'F', 'M', 'M', 'F', 'F', 'M', 'M', 'F', 'F', 'M',
+            'F', 'F', 'F', None, 'M', 'M', 'F', 'F', None, 'M',
+            'F', 'M', 'F', 'M', 'M', 'F', 'F', 'M', 'F', None
+        ]
     })
     history_stack.clear()
     return uploaded_df.to_html()
+
 
 @app.route('/remove_duplicates_by_column')
 def remove_duplicates_by_column():
@@ -233,9 +243,17 @@ def replace_values():
         return f"Invalid column: {column}", 400
 
     save_history()
-    uploaded_df[column] = uploaded_df[column].astype(str).str.replace(to_replace, new_value, regex=False)
+    if to_replace.isdigit():  # for strict number replacement
+        pattern = rf'^\s*{re.escape(to_replace)}\s*$'
+        uploaded_df[column] = uploaded_df[column].astype(str).apply(
+            lambda x: new_value if re.fullmatch(pattern, x.strip()) else x
+        )
+    else:
+        # normal string replacement
+        uploaded_df[column] = uploaded_df[column].astype(str).str.replace(to_replace, new_value, regex=False)
 
     return f"<p><b>Replaced '{to_replace}' with '{new_value}' in '{column}'.</b></p>" + uploaded_df.to_html()
+
 
 @app.route('/rename_column')
 def rename_column():
