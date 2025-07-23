@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <title>Data Cleaning App</title>
   <style>
     :root {
@@ -174,96 +173,6 @@
       font-weight: bold;
       color: #2c3e50;
     }
-
-    .magic-button {
-      position: relative;
-      overflow: hidden;
-      background-color: #198754;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 8px;
-      z-index: 1;
-    }
-
-    .sparkle-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .sparkle {
-      position: absolute;
-      color: #fff;
-      font-size: 16px;
-      animation: sparkleMove 4s linear forwards;
-      opacity: 0;
-    }
-
-    @keyframes sparkleMove {
-      0% {
-        transform: scale(0.8) translateY(0);
-        opacity: 0;
-      }
-
-      10% {
-        opacity: 1;
-      }
-
-      90% {
-        transform: scale(1.5) translateY(-80px) rotate(30deg);
-        opacity: 1;
-      }
-
-      100% {
-        transform: scale(0.5) translateY(-100px) rotate(60deg);
-        opacity: 0;
-      }
-    }
-
-    /* Sidebar styles */
-    .mapping-sidebar {
-      position: fixed;
-      top: 0;
-      right: -420px;
-      width: 400px;
-      height: 100vh;
-      background: #ffffff;
-      border-left: 2px solid #ccc;
-      overflow-y: auto;
-      padding: 10px;
-      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-      transition: right 0.3s ease;
-      z-index: 1000;
-    }
-
-    .mapping-sidebar.open {
-      right: 0;
-    }
-
-    /* Header inside sidebar */
-    .sidebar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: #eee;
-      padding: 10px;
-      border-bottom: 1px solid #ccc;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    body.sidebar-open .container {
-      margin-right: 420px;
-      transition: margin-right 0.3s ease;
-    }
   </style>
 </head>
 
@@ -286,22 +195,8 @@
       <button onclick="uploadCSV()">Import CSV</button>
       <button onclick="loadSample()">Load Sample</button>
       <button onclick="window.location.href='/export_csv'">Export CSV</button>
-      <button onclick="callAction('magic_clean')" class="magic-button" disabled>
-        🔒 Magic Clean <span class="beta-label">Beta</span>
-        <div class="sparkle-container"></div>
-      </button>
-
-      <style>
-        .beta-label {
-          background-color: #ff9800;
-          color: white;
-          font-size: 0.6rem;
-          padding: 2px 6px;
-          margin-left: 8px;
-          border-radius: 3px;
-          vertical-align: middle;
-        }
-      </style>
+      <button onclick="window.location.href='/export_excel'">Export Excel</button>
+      <button onclick="callAction('magic_clean')">✨ Magic Clean</button>
     </div>
 
     <hr />
@@ -310,6 +205,7 @@
       <button onclick="callAction('standardize_text')">Standardize</button>
       <button onclick="removeDuplicatesSelected()">Remove Duplicates</button>
       <input type="text" id="dupColumn" placeholder="Column name for duplicates" />
+      <button onclick="callAction('missing_values')">Check Missing</button>
       <button onclick="callAction('remove_special_chars')">Remove Special Chars</button>
       <button onclick="callAction('drop_missing')">Drop Missing Rows</button>
       <button onclick="callAction('fill_missing')">Fill Missing w/ 0</button>
@@ -355,24 +251,7 @@
       <button onclick="undoReplace()">Undo Replace</button>
       <button onclick="showDataProfile()">Show Data Profile</button>
     </div>
-    <hr>
-    <h3>Mapping</h3>
-    <div class="controls">
-      <input type="file" id="mappingInput" />
-      <input type="text" id="mapTargetColumn" placeholder="Target column (e.g. subviolation)" />
-      <button onclick="uploadMappingCSV()">Upload Mapping CSV</button>
-      <button onclick="applySubviolationMapping()">Apply Mapping</button>
-      <button onclick="toggleMappingSidebar()">Toggle Mapping Sidebar</button>
-    </div>
 
-    <!-- Sidebar for mapping data -->
-    <div id="mappingSidebar" class="mapping-sidebar">
-      <div class="sidebar-header">
-        <span><strong>Mapping CSV Preview</strong></span>
-        <button onclick="toggleMappingSidebar()">×</button>
-      </div>
-      <div id="mappingPreview"></div>
-    </div>
     <div id="output"></div>
     <div id="chart">
       <img id="chartImage" src="" alt="" />
@@ -611,121 +490,6 @@
           document.getElementById('output').innerHTML = html;
           alert('✔️ Action "' + endpoint + '" complete!');
         });
-    }
-    let chartInstance = null;
-
-    function drawChart() {
-      const chartType = document.getElementById("chartType").value;
-      const xColumn = document.getElementById("xAxisColumn").value;
-      const yColumn = document.getElementById("yAxisColumn").value;
-
-      fetch(`/generate_chart_data?x=${xColumn}&y=${yColumn}`)
-        .then(res => res.json())
-        .then(data => {
-          const ctx = document.getElementById("customChart").getContext("2d");
-
-          if (chartInstance) {
-            chartInstance.destroy();
-          }
-
-          chartInstance = new Chart(ctx, {
-            type: chartType,
-            data: {
-              labels: data.labels,
-              datasets: [{
-                label: `${yColumn} vs ${xColumn}`,
-                data: data.values,
-                backgroundColor: 'rgba(75, 192, 192, 0.4)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 2
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-            }
-          });
-        })
-        .catch(err => {
-          alert("Chart load failed: " + err);
-        });
-    }
-    const sparkleContainer = document.querySelector('.sparkle-container');
-    const sparkleChars = ['✨'];
-
-    function createSparkle() {
-      const sparkle = document.createElement('span');
-      sparkle.classList.add('sparkle');
-      sparkle.innerText = sparkleChars[Math.floor(Math.random() * sparkleChars.length)];
-      sparkle.style.left = `${Math.random() * 100}%`;
-      sparkle.style.top = `${Math.random() * 100}%`;
-      sparkle.style.fontSize = `${12 + Math.random() * 10}px`;
-
-      sparkleContainer.appendChild(sparkle);
-
-      setTimeout(() => {
-        sparkle.remove();
-      }, 4000);
-    }
-
-    // Create sparkles continuously
-    setInterval(createSparkle, 400);
-
-    function toggleMappingSidebar() {
-      const sidebar = document.getElementById("mappingSidebar");
-      const body = document.body;
-
-      const isOpen = sidebar.classList.contains("open");
-
-      if (isOpen) {
-        sidebar.classList.remove("open");
-        body.classList.remove("sidebar-open");
-      } else {
-        sidebar.classList.add("open");
-        body.classList.add("sidebar-open");
-      }
-    }
-
-    function uploadMappingCSV() {
-      const fileInput = document.getElementById("mappingInput");
-      const file = fileInput.files[0];
-      if (!file) {
-        alert("Please select a mapping CSV file.");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      fetch("/upload_mapping_csv", {
-        method: "POST",
-        body: formData,
-      })
-        .then((res) => res.text())
-        .then((html) => {
-          document.getElementById("mappingPreview").innerHTML = html;
-
-          // Auto show sidebar if mapping uploaded
-          const sidebar = document.getElementById("mappingSidebar");
-          sidebar.classList.add("open");
-          document.body.classList.add("sidebar-open");
-        })
-        .catch((err) => alert("Failed to upload mapping CSV: " + err));
-    }
-
-    function applySubviolationMapping() {
-      const targetCol = document.getElementById("mapTargetColumn").value;
-      if (!targetCol) {
-        alert("Please specify the target column to map (e.g. subviolation)");
-        return;
-      }
-
-      fetch(`/apply_subviolation_mapping?target_col=${encodeURIComponent(targetCol)}`)
-        .then((res) => res.text())
-        .then((html) => {
-          document.getElementById("output").innerHTML = html;
-        })
-        .catch((err) => alert("Error applying mapping: " + err));
     }
   </script>
 </body>

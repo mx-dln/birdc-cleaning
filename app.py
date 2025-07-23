@@ -7,6 +7,9 @@ import re
 import unicodedata
 from io import BytesIO, StringIO
 import html
+from dateutil import parser
+import numpy as np
+from word2number import w2n
 
 app = Flask(__name__)
 uploaded_df = pd.DataFrame()
@@ -88,19 +91,47 @@ def load_sample():
     global uploaded_df, history_stack
     uploaded_df = pd.DataFrame({
         'Name': [
-            'Alice', 'Bob', 'bob', 'ALICE', 'Carol', 'Dave', 'dave', 'Eve', 'eve', 'Frank',
-            'Grace', 'grace', 'Heidi', 'heidi', 'Ivan', 'IVAN', 'Judy', 'judy', 'Mallory', None,
-            ' Alice ', '  Bob', 'eve ', 'FRANK', ' frank ', 'Heidi', ' carol ', 'Ivan ', 'JUDY ', 'mallory'
+            '  john', 'Jane  ', 'JANE', 'John', 'Alice', 'alice ', ' Bob', 'bob', 'BOB', None,
+            'Charlie', ' charlie ', 'Dana', 'dana', 'D@n@', 'Eve', 'eve', 'EV3', 'Mallory', ' mallory ',
+            'Zoe', 'Zoe', 'ZOE ', '', 'Grace', ' grace', 'Oscar', 'Oscar', 'oscar', 'Oscar'
         ],
         'Age': [
-            25, 30, 30, 25, None, 45, 45, 35, None, 40,
-            29, 29, None, 50, 55, 55, None, 40, 33, 28,
-            25, 30, 35, 40, 40, None, None, 55, 40, 33
+            '25', 30, 'thirty', 25, None, 27, 31, '31', 31, 29,
+            'NaN', 33, 45, 45, 38, 28, '28', None, 'thirty-two', 32,
+            24, 24, '24 ', None, 'N/A', 36, 40, None, 40, 40
         ],
         'Gender': [
-            'F', 'M', 'M', 'F', 'F', 'M', 'M', 'F', 'F', 'M',
-            'F', 'F', 'F', None, 'M', 'M', 'F', 'F', None, 'M',
-            'F', 'M', 'F', 'M', 'M', 'F', 'F', 'M', 'F', None
+            'M', 'F', 'f', 'm', 'F', 'F', 'M', 'm', 'M', 'M',
+            None, 'M', 'F', 'F', 'f', 'F', 'f', 'F', 'F', None,
+            'Female', 'female', 'F ', 'M', '', 'F', 'Male', 'male', 'm', 'M'
+        ],
+        'Email': [
+            'john@example.com', ' JANE@MAIL.COM ', 'jane@mail', 'john@', 'alice@email.com', 'alice@EMAIL.COM',
+            'bob@sample.net', 'bob@@sample.com', 'bob@gmail.com', 'invalid-email',
+            '', 'charlie@mail.com', 'dana@mail.com', 'dana@MAIL.COM', 'd@n@!mail.com',
+            'eve@mail.com', 'EVE@MAIL.com', 'ev3@mail', 'mallory@mail.com', ' mallory@web.com ',
+            'zoe@gmail', 'zoe@', 'zoe@example.com', None, 'grace@mail', ' grace@web.com', 'oscar@site', '', 'oscar@site.com', 'OSCAR@site.com'
+        ],
+        'JoinDate': [
+            '2020-01-15', '01/15/2020', '15-Jan-2020', '2020/01/15', 'Jan 15 2020', '2020.01.15',
+            '20200115', '15/01/2020', '2020-13-01', 'Not a date',
+            '', '2020-01-15', '2021-02-30', '2022/02/28', 'Feb 28, 2022',
+            '03-05-2021', '2021/05/03', 'May 3rd, 2021', None, '2021-05-03',
+            '2021-05-03', '2021-5-3', '03 May 2021', 'N/A', 'null', '2022-06-15', '2022-06-15', '', '2022-06-15', '2022-06-15'
+        ],
+        'Salary': [
+            '50000', '60,000', '50K', '55000.50', '$58000', None,
+            '59000', 'invalid', '', '52000',
+            '48000', 'NaN', '61000', '62000', '63,000',
+            '64000', '65000', '66000', '67000', 'not available',
+            '68000', '68000.00', '69000', '70000', '70000', '71000', '72000', '0', None, '73000'
+        ],
+        'Active': [
+            'Yes', 'No', 'yes', 'no', 'TRUE', 'FALSE',
+            'true', 'false', 1, 0,
+            'Y', 'N', '', '1', '0',
+            'Active', 'Inactive', None, 'yes', 'no',
+            'enabled', 'disabled', 'Yes', 'No', 'n/a', 'True', 'False', '', '1', '0'
         ]
     })
     history_stack.clear()
@@ -243,16 +274,15 @@ def replace_values():
         return f"Invalid column: {column}", 400
 
     save_history()
-    if to_replace.isdigit():  # for strict number replacement
-        pattern = rf'^\s*{re.escape(to_replace)}\s*$'
-        uploaded_df[column] = uploaded_df[column].astype(str).apply(
-            lambda x: new_value if re.fullmatch(pattern, x.strip()) else x
-        )
-    else:
-        # normal string replacement
-        uploaded_df[column] = uploaded_df[column].astype(str).str.replace(to_replace, new_value, regex=False)
 
-    return f"<p><b>Replaced '{to_replace}' with '{new_value}' in '{column}'.</b></p>" + uploaded_df.to_html()
+    # Replace only if full value matches (case-insensitive)
+    uploaded_df[column] = uploaded_df[column].apply(
+        lambda x: new_value if str(x).strip().lower() == to_replace.lower() else x
+    )
+
+    return f"<p><b>Replaced '{to_replace}' with '{new_value}' in '{column}' (case-insensitive).</b></p>" + uploaded_df.to_html()
+
+
 
 
 @app.route('/rename_column')
@@ -317,37 +347,51 @@ def data_profile():
 
     for col in uploaded_df.columns:
         col_lower = col.lower()
+        series = uploaded_df[col]
 
-        missing_count = uploaded_df[col].isnull().sum()
+        # Missing values
+        missing_count = series.isnull().sum()
         if missing_count > 0:
             profile[f"Missing values in '{col}'"] = missing_count
 
+        # Invalid phone numbers
         if 'phone' in col_lower:
             pattern = r'^\+?\d{10,15}$'
-            invalid_phones = uploaded_df[col].apply(lambda x: not bool(re.fullmatch(pattern, str(x))) if pd.notnull(x) else False).sum()
+            invalid_phones = series.apply(lambda x: not bool(re.fullmatch(pattern, str(x))) if pd.notnull(x) else False).sum()
             profile[f"Invalid Phone Numbers in '{col}'"] = invalid_phones
 
+        # Invalid emails
         if 'email' in col_lower:
             pattern = r'^[^@\s]+@[^@\s]+\.[^@\s]+$'
-            invalid_emails = uploaded_df[col].apply(lambda x: not bool(re.fullmatch(pattern, str(x))) if pd.notnull(x) else False).sum()
+            invalid_emails = series.apply(lambda x: not bool(re.fullmatch(pattern, str(x))) if pd.notnull(x) else False).sum()
             profile[f"Invalid Emails in '{col}'"] = invalid_emails
 
+        # Non-standard country codes
         if 'country' in col_lower:
-            nonstandard = uploaded_df[col].apply(lambda x: not bool(re.fullmatch(r'^[A-Za-z]{2,3}$', str(x))) if pd.notnull(x) else False).sum()
+            nonstandard = series.apply(lambda x: not bool(re.fullmatch(r'^[A-Za-z]{2,3}$', str(x))) if pd.notnull(x) else False).sum()
             profile[f"Non-standard Country Codes in '{col}'"] = nonstandard
 
+        # Missing IDs
         if 'id' in col_lower:
-            missing_ids = uploaded_df[col].isnull().sum()
+            missing_ids = series.isnull().sum()
             profile[f"Missing IDs in '{col}'"] = missing_ids
 
-    profile['Duplicate Rows'] = uploaded_df.duplicated().sum()
+        # Duplicates per column (excluding nulls)
+        duplicate_vals = series[series.notnull()].duplicated().sum()
+        if duplicate_vals > 0:
+            profile[f"Duplicate Values in '{col}'"] = duplicate_vals
 
+    # Row-level duplicate detection
+    profile['Duplicate Rows (Full Match)'] = uploaded_df.duplicated().sum()
+
+    # Convert to HTML table
     html_output = "<h3>Input Data Profile (Pre-Cleaning)</h3><table border='1'><tr><th>Metric</th><th>Value</th></tr>"
     for key, value in profile.items():
         html_output += f"<tr><td>{key}</td><td>{value}</td></tr>"
     html_output += "</table>"
 
     return html_output
+
 
 @app.route('/find')
 def find():
@@ -375,6 +419,150 @@ def find():
 
     return f"<p><b>Found {len(filtered_df)} matching rows for keyword '{keyword}'</b></p>" + filtered_df.to_html()
 
+from word2number import w2n
+
+@app.route('/magic_clean')
+def magic_clean():
+    global uploaded_df
+    save_history()
+
+    def clean_column_names(df):
+        df.columns = df.columns.str.strip().str.lower().str.replace(r'\s+', '_', regex=True)
+        return df
+
+    def clean_value(val, col_name):
+        if pd.isnull(val):
+            return None
+
+        if isinstance(val, str):
+            original_val = val.strip()
+            val = original_val  # keep original as backup
+
+            # Clean email fields
+            if 'email' in col_name:
+                val = re.sub(r'@+', '@', val)
+                if '@' in val and not re.search(r'\.\w+$', val):
+                    val += '.com'
+                if re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', val):
+                    return val.lower()
+                else:
+                    return None
+
+            # Clean boolean-like values
+            if val.lower() in ['yes', 'true', 'y', '1', 'active', 'enabled']:
+                return 1
+            elif val.lower() in ['no', 'false', 'n', '0', 'inactive', 'disabled']:
+                return 0
+
+            # Try to convert word numbers
+            try:
+                word_to_num = w2n.word_to_num(val.lower())
+                return word_to_num
+            except:
+                pass
+
+            # Clean numeric values (with k/m symbols, $, commas)
+            val_numeric = val.lower().replace(',', '').replace('$', '')
+            if val_numeric.endswith('k'):
+                try:
+                    return int(float(val_numeric.replace('k', '')) * 1000)
+                except:
+                    pass
+            elif val_numeric.endswith('m'):
+                try:
+                    return int(float(val_numeric.replace('m', '')) * 1_000_000)
+                except:
+                    pass
+            elif re.fullmatch(r'-?\d+(\.\d+)?', val_numeric):
+                return float(val_numeric) if '.' in val_numeric else int(val_numeric)
+
+            # Try parsing as a date
+            try:
+                parsed = parser.parse(val, fuzzy=True, dayfirst=False)
+                return parsed.strftime('%Y-%m-%d')
+            except:
+                pass
+
+            # If column name likely refers to a name or title, standardize it
+            if any(key in col_name for key in ['name', 'title', 'position']):
+                val = re.sub(r'[^A-Za-zÀ-ÿ\'\- ]+', '', val)
+                return val.title().strip()
+
+            # For other text columns, keep original (may contain valid punctuation/numbers)
+            return original_val
+
+        # Convert Python boolean to 1/0
+        if isinstance(val, bool):
+            return int(val)
+
+        return val
+
+    uploaded_df = clean_column_names(uploaded_df)
+    uploaded_df = uploaded_df.apply(lambda col: col.apply(lambda val: clean_value(val, col.name)))
+    uploaded_df.drop_duplicates(inplace=True)
+
+    return "<p><b>✨ Magic Clean applied!</b></p>" + uploaded_df.to_html()
+
+@app.route('/generate_chart_data')
+def generate_chart_data():
+    global uploaded_df
+    x_col = request.args.get('x')
+    y_col = request.args.get('y')
+
+    if uploaded_df.empty or x_col not in uploaded_df.columns or y_col not in uploaded_df.columns:
+        return jsonify({'labels': [], 'values': []})
+
+    # Drop missing or non-numeric
+    df = uploaded_df[[x_col, y_col]].dropna()
+    try:
+        df[y_col] = pd.to_numeric(df[y_col], errors='coerce')
+        df = df.dropna()
+    except:
+        pass
+
+    grouped = df.groupby(x_col)[y_col].sum().reset_index()
+    labels = grouped[x_col].astype(str).tolist()
+    values = grouped[y_col].tolist()
+
+    return jsonify({'labels': labels, 'values': values})
+
+@app.route('/upload_mapping_csv', methods=['POST'])
+def upload_mapping_csv():
+    global mapping_df
+    file = request.files.get('file')
+    if file is None:
+        return "No mapping file uploaded.", 400
+    raw_data = file.read()
+    result = chardet.detect(raw_data)
+    encoding = result['encoding']
+    file.seek(0)
+    mapping_df = pd.read_csv(file, encoding=encoding)
+    return f"<p><b>Mapping CSV loaded successfully with {len(mapping_df)} rows.</b></p>" + mapping_df.to_html()
+
+@app.route('/apply_subviolation_mapping')
+def apply_subviolation_mapping():
+    global uploaded_df, mapping_df
+
+    if uploaded_df.empty or mapping_df.empty:
+        return "Main data or mapping data is not loaded.", 400
+
+    target_col = request.args.get("target_col")
+    if not target_col:
+        return "Missing 'target_col' query parameter.", 400
+
+    if target_col not in uploaded_df.columns:
+        return f"Column '{target_col}' does not exist in uploaded data.", 400
+
+    if 'id' not in mapping_df.columns or 'name' not in mapping_df.columns:
+        return "Mapping file must have 'id' and 'name' columns.", 400
+
+    save_history()
+
+    uploaded_df[target_col] = uploaded_df[target_col].map(
+        dict(zip(mapping_df['id'], mapping_df['name']))
+    )
+
+    return f"<p><b>Applied mapping on column <code>{target_col}</code>.</b></p>" + uploaded_df.to_html()
 
 if __name__ == '__main__':
     if not os.path.exists('static'):
