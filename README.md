@@ -83,16 +83,9 @@ Pandas
 
 dateutil, regex, word2number
 
-📅 Coming Soon
-✅ Before/After Comparison View
-
 ✅ Progress Indicator for Large Datasets
 
 ✅ Undo / Redo History
-
-🔮 AI-Powered GPT Cleaning Mode (Pro Version)
-
-🤖 Column mapping via OpenAI embeddings + fuzzy logic
 
 📄 License
 MIT License
