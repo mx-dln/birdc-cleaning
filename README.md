@@ -4,6 +4,7 @@ Magic Clean is a lightweight, Python-based data cleaning web app that helps you 
 🔧 Note: This is a beta version. OpenAI-powered deep cleaning is coming soon!
 
 🚀 Features
+
 ✅ Column Name Normalization
 
 Trims whitespace
