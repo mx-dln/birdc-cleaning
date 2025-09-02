@@ -8,7 +8,6 @@ import unicodedata
 from io import BytesIO, StringIO
 import html
 from dateutil import parser
-import numpy as np
 from word2number import w2n
 
 app = Flask(__name__)
@@ -323,18 +322,31 @@ def drop_column():
 def drop_value():
     global uploaded_df
     column = request.args.get('column')
-    value = request.args.get('value')
+    value = request.args.get('value', "").strip()
+    action = request.args.get('action', 'drop')  # default = drop
 
     if column not in uploaded_df.columns:
         return f"Column '{column}' not found.", 400
 
     save_history()
-    before = len(uploaded_df)
-    uploaded_df = uploaded_df[~uploaded_df[column].astype(str).str.contains(value, na=False)]
-    after = len(uploaded_df)
-    affected = before - after
 
-    return f"<p><b>Dropped {affected} rows where '{column}' contains '{value}'.</b></p>" + uploaded_df.to_html()
+    # Ensure it's a string column for matching
+    uploaded_df[column] = uploaded_df[column].astype(str)
+
+    # Build mask: case-insensitive substring search
+    mask = uploaded_df[column].str.contains(value, case=False, na=False)
+
+    if action == "drop":
+        uploaded_df = uploaded_df[~mask]  # drop rows that match
+        message = f"Dropped rows where {column} contains '{value}' (case-insensitive)"
+    elif action == "keep":
+        uploaded_df = uploaded_df[mask]   # keep only matching rows
+        message = f"Kept rows where {column} contains '{value}' (case-insensitive)"
+    else:
+        return "Invalid action", 400
+
+    return f"<p><b>{message}</b></p>" + uploaded_df.to_html()
+
 
 @app.route('/data_profile')
 def data_profile():
@@ -381,16 +393,59 @@ def data_profile():
         if duplicate_vals > 0:
             profile[f"Duplicate Values in '{col}'"] = duplicate_vals
 
-    # Row-level duplicate detection
     profile['Duplicate Rows (Full Match)'] = uploaded_df.duplicated().sum()
 
-    # Convert to HTML table
-    html_output = "<h3>Input Data Profile (Pre-Cleaning)</h3><table border='1'><tr><th>Metric</th><th>Value</th></tr>"
+    # Styled HTML with close button
+    html_output = """
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
+            table { border-collapse: collapse; width: 100%; margin-top: 10px; background: white; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            #profile-container { border: 1px solid #ccc; padding: 15px; background: #fff; border-radius: 8px; position: relative; }
+            .close-btn {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: red;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                cursor: pointer;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body><br>
+        <div id="profile-container">
+            <h3>Input Data Profile (Pre-Cleaning)</h3>
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+    """
+
     for key, value in profile.items():
         html_output += f"<tr><td>{key}</td><td>{value}</td></tr>"
-    html_output += "</table>"
+
+    html_output += """
+            </table>
+        </div>
+
+        <!-- Place the script AFTER the HTML it interacts with -->
+        <script>
+            function closeProfile() {
+                const container = document.getElementById('profile-container');
+                if (container) container.style.display = 'none';
+            }
+        </script>
+    </body>
+    </html>
+    """
 
     return html_output
+
+
 
 
 @app.route('/find')
@@ -564,7 +619,7 @@ def apply_subviolation_mapping():
 
     return f"<p><b>Applied mapping on column <code>{target_col}</code>.</b></p>" + uploaded_df.to_html()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if not os.path.exists('static'):
         os.makedirs('static')
     app.run(host="127.0.0.1", port=5000, debug=True)

@@ -286,7 +286,7 @@
       <button onclick="uploadCSV()">Import CSV</button>
       <button onclick="loadSample()">Load Sample</button>
       <button onclick="window.location.href='/export_csv'">Export CSV</button>
-      <button onclick="callAction('magic_clean')" class="magic-button" disabled>
+      <button onclick="callAction('magic_clean')" class="magic-button">
         🔒 Magic Clean <span class="beta-label">Beta</span>
         <div class="sparkle-container"></div>
       </button>
@@ -336,8 +336,14 @@
 
     <div class="controls">
       <input type="text" id="dropTableColumn" placeholder="Column to filter" />
-      <input type="text" id="dropTableValue" placeholder="Value to drop" />
-      <button onclick="dropValue()">Drop Value</button>
+      <input type="text" id="dropTableValue" placeholder="Value" />
+
+      <select id="dropAction">
+        <option value="drop">Drop Selected</option>
+        <option value="keep">Keep Selected (Drop Others)</option>
+      </select>
+
+      <button onclick="dropValue()">Apply</button>
     </div>
 
     <div class="controls">
@@ -381,7 +387,7 @@
 
   <div id="dataProfileModal">
     <div class="modal-content">
-      <span onclick="closeDataProfileModal()">&times;</span>
+      <span onclick="closeModal()">&times;</span>
       <div id="modal-body">
         <!-- AJAX content goes here -->
       </div>
@@ -539,13 +545,14 @@
     function dropValue() {
       const column = document.getElementById('dropTableColumn').value;
       const value = document.getElementById('dropTableValue').value;
+      const action = document.getElementById('dropAction').value;
 
       if (!column || !value) {
         alert("Please enter both column name and value.");
         return;
       }
 
-      fetch(`/drop_value?column=${encodeURIComponent(column)}&value=${encodeURIComponent(value)}`)
+      fetch(`/drop_value?column=${encodeURIComponent(column)}&value=${encodeURIComponent(value)}&action=${action}`)
         .then(response => response.text())
         .then(data => {
           document.getElementById('output').innerHTML = data;
