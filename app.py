@@ -9,6 +9,10 @@ from io import BytesIO, StringIO
 import html
 from dateutil import parser
 from word2number import w2n
+from rapidfuzz import fuzz, process
+import string
+import io
+
 
 app = Flask(__name__)
 uploaded_df = pd.DataFrame()
@@ -263,25 +267,62 @@ def change_dtype():
     return f"<p><b>Changed '{column}' to {dtype}.</b></p>" + uploaded_df.to_html()
 
 @app.route('/replace_values')
-def replace_values():
+def replace_values_non_sensitive():
+    """Non-sensitive replace: substring replacement (case-insensitive)."""
     global uploaded_df
     column = request.args.get('column')
-    to_replace = request.args.get('replace_from')
-    new_value = request.args.get('to')
+    to_replace = request.args.get('replace_from', '')
+    new_value = request.args.get('to', '')
 
     if column not in uploaded_df.columns:
         return f"Invalid column: {column}", 400
 
     save_history()
 
-    # Replace only if full value matches (case-insensitive)
+    def replace_substring(val):
+        if isinstance(val, str):
+            return re.sub(re.escape(to_replace), new_value, val, flags=re.IGNORECASE)
+        return val
+
+    # Count affected rows
+    before_count = uploaded_df[column].apply(
+        lambda x: isinstance(x, str) and re.search(re.escape(to_replace), x, flags=re.IGNORECASE) is not None
+    ).sum()
+
+    uploaded_df[column] = uploaded_df[column].apply(replace_substring)
+
+    return f"<p><b>Non-sensitive replace (substring): '{to_replace}' → '{new_value}' in '{column}'. Rows affected: {before_count}</b></p>" + uploaded_df.to_html()
+
+
+@app.route('/replace_values_sensitive')
+def replace_values_sensitive():
+    """Sensitive replace: full-value replacement only (normalized)."""
+    global uploaded_df
+    import re
+
+    column = request.args.get('column')
+    to_replace = request.args.get('replace_from', '')
+    new_value = request.args.get('to', '')
+
+    if column not in uploaded_df.columns:
+        return f"Invalid column: {column}", 400
+
+    save_history()
+
+    def normalize(text):
+        if not isinstance(text, str):
+            return ""
+        return re.sub(r'\s+', ' ', text).strip().lower()
+
+    # Count affected rows
+    before_count = (uploaded_df[column].apply(normalize) == normalize(to_replace)).sum()
+
+    # Replace only if full value matches
     uploaded_df[column] = uploaded_df[column].apply(
-        lambda x: new_value if str(x).strip().lower() == to_replace.lower() else x
+        lambda x: new_value if normalize(x) == normalize(to_replace) else x
     )
 
-    return f"<p><b>Replaced '{to_replace}' with '{new_value}' in '{column}' (case-insensitive).</b></p>" + uploaded_df.to_html()
-
-
+    return f"<p><b>Sensitive replace (full match): '{to_replace}' → '{new_value}' in '{column}'. Rows affected: {before_count}</b></p>" + uploaded_df.to_html()
 
 
 @app.route('/rename_column')
@@ -592,7 +633,7 @@ def upload_mapping_csv():
     encoding = result['encoding']
     file.seek(0)
     mapping_df = pd.read_csv(file, encoding=encoding)
-    return f"<p><b>Mapping CSV loaded successfully with {len(mapping_df)} rows.</b></p>" + mapping_df.to_html()
+    return mapping_df.to_html()
 
 @app.route('/apply_subviolation_mapping')
 def apply_subviolation_mapping():
@@ -619,7 +660,140 @@ def apply_subviolation_mapping():
 
     return f"<p><b>Applied mapping on column <code>{target_col}</code>.</b></p>" + uploaded_df.to_html()
 
+@app.route('/upload_barangay_csv', methods=['POST'])
+def upload_barangay_csv():
+    global barangay_df
+
+    file = request.files.get('file')
+    if file is None:
+        return "No barangay file uploaded.", 400
+
+    raw_data = file.read()
+    result = chardet.detect(raw_data)
+    encoding = result['encoding']
+    file.seek(0)
+
+    # Just load barangays exactly as they are
+    barangay_df = pd.read_csv(file, encoding=encoding, header=None, names=["Barangay"])
+
+    return (
+        f"<p><b>Barangay list loaded successfully with {len(barangay_df)} rows.</b></p>"
+        + barangay_df.to_html()
+    )
+
+
+import re
+
+@app.route('/apply_barangay_mapping', methods=['POST'])
+def apply_barangay_template():
+    global uploaded_df, barangay_df
+
+    if uploaded_df.empty:
+        return "No main CSV loaded.", 400
+    if barangay_df.empty:
+        return "No barangay template loaded.", 400
+
+    # Get target column from request
+    target_column = request.form.get('targetColumn')
+    if not target_column:
+        return "Target column not provided.", 400
+    if target_column not in uploaded_df.columns:
+        return f"'{target_column}' column not found in main CSV.", 400
+
+    # Prepare barangay template: remove parentheses for matching
+    barangay_list = []
+    barangay_map = {}  # maps simplified name → full template
+    for b in barangay_df['Barangay']:
+        if isinstance(b, str):
+            b_clean = re.sub(r'\s*\(.*?\)\s*', '', b).strip().upper()  # remove anything in parentheses
+            barangay_list.append(b_clean)
+            barangay_map[b_clean] = b  # store original template
+
+    def map_to_barangay(value):
+        if not isinstance(value, str) or not value.strip():
+            return value  # keep as-is if empty or invalid
+
+        value_upper = value.upper()
+        for barangay_clean in barangay_list:
+            if barangay_clean in value_upper:
+                return barangay_map[barangay_clean]  # return full template with (Pob.) if exists
+        return value  # keep original if no match
+
+    save_history()
+    uploaded_df[target_column] = uploaded_df[target_column].apply(map_to_barangay)
+
+    return f"<p><b>Mapped '{target_column}' to Barangay (template-aware) for {len(uploaded_df)} rows.</b></p>" + uploaded_df.to_html()
+
+@app.route('/show_unaligned_barangays')
+def show_unaligned_barangays():
+    global uploaded_df, barangay_df
+
+    if uploaded_df.empty:
+        return "No main CSV loaded.", 400
+    if barangay_df.empty:
+        return "No barangay template loaded.", 400
+    if 'ConsumerAddress' not in uploaded_df.columns:
+        return "'ConsumerAddress' column not found in main CSV.", 400
+
+    # Ensure all addresses are strings
+    uploaded_df['ConsumerAddress'] = uploaded_df['ConsumerAddress'].astype(str).str.strip()
+
+    # Get template barangay list
+    template_list = barangay_df['Barangay'].astype(str).str.strip().tolist()
+
+    # Find unaligned addresses (not in template)
+    unaligned = uploaded_df[~uploaded_df['ConsumerAddress'].isin(template_list)]
+
+    if unaligned.empty:
+        return "<p><b>All addresses are aligned with the template.</b></p>"
+
+    return (
+        f"<p><b>Found {len(unaligned)} unaligned addresses:</b></p>" 
+        + unaligned.to_html()
+    )
+
+@app.route('/export_unaligned_barangays')
+def export_and_drop_unaligned_barangays():
+    global uploaded_df, barangay_df
+
+    # Get target column dynamically from query string
+    target_column = request.args.get('targetColumn', 'ConsumerAddress').strip()
+
+    if uploaded_df.empty:
+        return "No main CSV loaded.", 400
+    if barangay_df.empty:
+        return "No barangay template loaded.", 400
+    if target_column not in uploaded_df.columns:
+        return f"'{target_column}' column not found in main CSV.", 400
+
+    # Ensure all addresses are strings
+    uploaded_df[target_column] = uploaded_df[target_column].astype(str).str.strip()
+    template_list = barangay_df['Barangay'].astype(str).str.strip().tolist()
+
+    # Find unaligned addresses
+    unaligned = uploaded_df[~uploaded_df[target_column].isin(template_list)]
+
+    if unaligned.empty:
+        return "<p><b>No unaligned addresses to export or drop.</b></p>"
+
+    # Export CSV in-memory
+    output = io.StringIO()
+    unaligned.to_csv(output, index=False)
+    output.seek(0)
+
+    # Drop unaligned rows from uploaded_df
+    uploaded_df = uploaded_df[uploaded_df[target_column].isin(template_list)]
+
+    return send_file(
+        io.BytesIO(output.getvalue().encode()),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='unaligned_barangays.csv'
+    )
+
+
+
 if __name__ == "__main__":
     if not os.path.exists('static'):
-        os.makedirs('static')
+            os.makedirs('static')
     app.run(host="127.0.0.1", port=5000, debug=True)

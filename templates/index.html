@@ -4,20 +4,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+
+  <title>Data Cleaner • Studio</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- jQuery + DataTables + Bootstrap 5 -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <title>Data Cleaning App</title>
+
+  <!-- Icons (Bootstrap Icons) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
   <style>
     :root {
-      --primary-color: #0d6efd;
-      --secondary-color: #f8f9fa;
-      --accent-color: #198754;
-      --danger-color: #dc3545;
-      --text-color: #212529;
-      --light-border: #dee2e6;
-      --radius: 8px;
+      --primary: #6366f1;
+      --primary-soft: #eef2ff;
+      --bg: #f3f4f6;
+      --bg-elevated: #ffffff;
+      --border: #e5e7eb;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius-lg: 14px;
+      --radius: 10px;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
     }
 
     * {
@@ -27,142 +49,261 @@
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--secondary-color);
-      color: var(--text-color);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
     }
 
-    header {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 20px;
-      text-align: center;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .container {
-      width: 95vw;
-      margin: 30px auto;
-      background-color: #fff;
-      padding: 30px;
-      border-radius: var(--radius);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    }
-
-    .controls {
+    /* Layout */
+    .app-shell {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
+      min-height: 100vh;
     }
 
-    input[type="text"],
-    input[type="file"],
-    select {
-      padding: 10px;
-      border: 1px solid var(--light-border);
-      border-radius: var(--radius);
-      font-size: 14px;
+    .sidebar {
+      width: 250px;
+      background: #111827;
+      color: #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 16px;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding: 0 4px;
+    }
+
+    .sidebar-brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #22c55e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .sidebar-brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .sidebar-brand-text span:first-child {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .sidebar-brand-text span:last-child {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      padding: 0;
+      margin: 0;
       flex: 1;
     }
 
-    button {
-      background-color: var(--accent-color);
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      font-size: 14px;
-      border-radius: var(--radius);
-      cursor: pointer;
-      transition: background-color 0.3s;
+    .sidebar-nav li {
+      margin-bottom: 4px;
     }
 
-    button:hover {
-      background-color: #146c43;
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #d1d5db;
+      text-decoration: none;
+      transition: background 0.16s, color 0.16s, transform 0.08s;
     }
 
-    hr {
-      margin: 30px 0;
+    .sidebar-link i {
+      font-size: 16px;
     }
 
-    #output {
-      margin-top: 20px;
-      background: #f1f3f5;
-      padding: 20px;
-      border-radius: var(--radius);
-      overflow-x: auto;
+    .sidebar-link:hover {
+      background: rgba(55, 65, 81, 0.85);
+      color: #ffffff;
+      transform: translateY(-1px);
     }
 
-    table.dataframe {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
+    .sidebar-link.active {
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.1), rgba(22, 163, 74, 0.18));
+      color: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.4);
     }
 
-    table.dataframe th,
-    table.dataframe td {
-      padding: 10px;
-      border: 1px solid var(--light-border);
-      text-align: left;
+    .sidebar-footer {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 12px;
+      border-top: 1px solid #1f2933;
+      padding-top: 8px;
     }
 
-    table.dataframe th {
-      background-color: #e9ecef;
+    .sidebar-footer span {
+      display: block;
     }
 
-    #chart img {
-      width: 100%;
-      margin-top: 20px;
-      border-radius: var(--radius);
+    /* Main content */
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
 
-    #dataProfileModal {
-      display: none;
-      position: fixed;
+    .topbar {
+      height: 60px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
       top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
-      z-index: 1000;
+      z-index: 20;
     }
 
-    #dataProfileModal .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 800px;
-      margin: 5% auto;
-      position: relative;
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    #dataProfileModal .modal-content span {
-      position: absolute;
-      top: 10px;
-      right: 20px;
-      font-size: 24px;
-      cursor: pointer;
+    .topbar-title {
+      font-weight: 600;
+      font-size: 18px;
     }
 
-
-    @media (max-width: 768px) {
-      .controls {
-        flex-direction: column;
-      }
+    .topbar-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pill-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: #4f46e5;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .content-wrap {
+      padding: 20px 24px 28px;
+      min-width: 0;
+    }
+
+    /* Cards & sections */
+    .card-pro {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(229, 231, 235, 0.92);
+      padding: 18px 18px 16px;
+      margin-bottom: 18px;
+    }
+
+    .card-header-pro {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .card-header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .card-title-pro {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .card-subtitle-pro {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Dropzone */
     .dropzone {
-      border: 2px dashed #3498db;
-      padding: 40px;
+      border: 1px dashed rgba(99, 102, 241, 0.4);
+      background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.13), transparent 46%);
+      padding: 28px 22px;
+      border-radius: 16px;
       text-align: center;
-      border-radius: 10px;
       cursor: pointer;
-      color: #2980b9;
-      transition: background 0.3s;
+      transition: border 0.2s, background 0.2s, transform 0.08s;
+      position: relative;
+      overflow: hidden;
     }
 
-    .dropzone.dragover {
-      background-color: #ecf0f1;
+    .dropzone:hover {
+      border-color: rgba(79, 70, 229, 0.8);
+      background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 52%);
+      transform: translateY(-1px);
+    }
+
+    .dropzone-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(79, 70, 229, 0.09);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-size: 22px;
+      color: #4f46e5;
+    }
+
+    .dropzone-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .dropzone-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
     .dropzone input {
@@ -170,22 +311,341 @@
     }
 
     .file-name {
-      margin-top: 10px;
-      font-weight: bold;
-      color: #2c3e50;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #1f2933;
     }
 
+    /* Button styles */
+    .btn-ghost {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 12px;
+      padding: 6px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-ghost i {
+      font-size: 14px;
+    }
+
+    .btn-ghost:hover {
+      background: #f9fafb;
+    }
+
+    .btn-soft {
+      border-radius: 999px;
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-size: 12px;
+      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 10px 24px rgba(79, 70, 229, 0.28);
+    }
+
+    .btn-soft:hover {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .beta-label {
+      background-color: #f97316;
+      color: white;
+      font-size: 0.6rem;
+      padding: 2px 6px;
+      margin-left: 4px;
+      border-radius: 999px;
+      vertical-align: middle;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .btn-icon {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: white;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      padding: 0;
+    }
+
+    .btn-icon:hover {
+      background: #f3f4f6;
+    }
+
+    /* Tool groups */
+    .tool-group-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .tool-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tool-chip {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      padding: 7px 12px;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 0.16s, border-color 0.16s, transform 0.06s;
+    }
+
+    .tool-chip i {
+      font-size: 14px;
+    }
+
+    .tool-chip:hover {
+      background: #eef2ff;
+      border-color: rgba(79, 70, 229, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .tool-chip.danger:hover {
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
+    .tool-chip.success:hover {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+    }
+
+    /* Inputs row */
+    .mini-input {
+      font-size: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      height: 32px;
+    }
+
+    .mini-select {
+      font-size: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      height: 32px;
+    }
+
+    /* Data area */
+    #output {
+      margin-top: 4px;
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    table.dataframe {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    table.dataframe th,
+    table.dataframe td {
+      padding: 8px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+
+    table.dataframe th {
+      background-color: #eef2ff;
+      font-size: 12px;
+    }
+
+    /* Chart area */
+    #chart img {
+      width: 100%;
+      margin-top: 10px;
+      border-radius: var(--radius);
+    }
+
+    /* Loader overlay */
+    #loader {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(249, 250, 251, 0.85);
+      z-index: 9999;
+      text-align: center;
+      padding-top: 200px;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--primary);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Data profile modal (custom) */
+    #dataProfileModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(15, 23, 42, 0.55);
+      z-index: 1000;
+    }
+
+    #dataProfileModal .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      max-width: 900px;
+      margin: 4% auto;
+      position: relative;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-soft);
+    }
+
+    #dataProfileModal .modal-content span {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #9ca3af;
+    }
+
+    /* Mapping & barangay sidebars */
+    .mapping-sidebar {
+      position: fixed;
+      top: 0;
+      right: -420px;
+      width: 400px;
+      height: 100vh;
+      background: #ffffff;
+      border-left: 1px solid #e5e7eb;
+      overflow-y: auto;
+      padding: 0;
+      box-shadow: -2px 0 18px rgba(15, 23, 42, 0.2);
+      transition: right 0.3s ease;
+      z-index: 1000;
+    }
+
+    .mapping-sidebar.open {
+      right: 0;
+    }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #f9fafb;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .sidebar-header button {
+      font-size: 18px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .sidebar-header button:hover {
+      background: #e5e7eb;
+    }
+
+    body.sidebar-open .content-wrap {
+      margin-right: 420px;
+      transition: margin-right 0.3s ease;
+    }
+
+    /* Unaligned modal inside barangay sidebar */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-height: 80%;
+      overflow-y: auto;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .close-btn {
+      color: white;
+      background: var(--danger);
+      border: none;
+      padding: 5px 10px;
+      font-size: 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    /* Magic button sparkles */
     .magic-button {
       position: relative;
       overflow: hidden;
-      background-color: #198754;
+      background-color: var(--success);
       color: white;
       border: none;
-      padding: 12px 24px;
-      font-size: 16px;
+      padding: 8px 15px;
+      font-size: 12px;
       cursor: pointer;
-      border-radius: 8px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       z-index: 1;
+      box-shadow: 0 10px 24px rgba(16, 185, 129, 0.3);
     }
 
     .sparkle-container {
@@ -227,164 +687,398 @@
       }
     }
 
-    /* Sidebar styles */
-    .mapping-sidebar {
-      position: fixed;
-      top: 0;
-      right: -420px;
-      width: 400px;
-      height: 100vh;
-      background: #ffffff;
-      border-left: 2px solid #ccc;
-      overflow-y: auto;
-      padding: 10px;
-      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-      transition: right 0.3s ease;
-      z-index: 1000;
+    /* Responsive tweaks */
+    @media (max-width: 992px) {
+      .sidebar {
+        display: none;
+      }
+
+      .content-wrap {
+        padding: 16px 14px 22px;
+      }
+
+      .topbar {
+        padding: 0 14px;
+      }
     }
 
-    .mapping-sidebar.open {
-      right: 0;
-    }
+    @media (max-width: 576px) {
+      .card-header-pro {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
 
-    /* Header inside sidebar */
-    .sidebar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: #eee;
-      padding: 10px;
-      border-bottom: 1px solid #ccc;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    body.sidebar-open .container {
-      margin-right: 420px;
-      transition: margin-right 0.3s ease;
+      .tool-chip-row {
+        gap: 6px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <center>
-    <h1>BIRD-C CLEANING APP</h1>
-  </center>
-  <div id="loader"
-    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:9999; text-align:center; padding-top:200px; font-size:22px; font-weight:bold; color:#0d6efd;">
-    ⏳ Importing file, please wait...
-  </div>
+  <div id="loader">⏳ Processing data…</div>
 
-  <div class="container">
-    <div class="dropzone" id="dropzone">
-      <p>📁 Drag and drop your file here or click to browse</p>
-      <input type="file" id="fileInput" />
-      <p class="file-name" id="fileNameDisplay"></p>
-    </div><br>
-    <div class="controls">
-      <button onclick="uploadCSV()">Import CSV</button>
-      <button onclick="loadSample()">Load Sample</button>
-      <button onclick="window.location.href='/export_csv'">Export CSV</button>
-      <button onclick="callAction('magic_clean')" class="magic-button">
-        🔒 Magic Clean <span class="beta-label">Beta</span>
-        <div class="sparkle-container"></div>
-      </button>
-
-      <style>
-        .beta-label {
-          background-color: #ff9800;
-          color: white;
-          font-size: 0.6rem;
-          padding: 2px 6px;
-          margin-left: 8px;
-          border-radius: 3px;
-          vertical-align: middle;
-        }
-      </style>
-    </div>
-
-    <hr />
-
-    <div class="controls">
-      <button onclick="callAction('standardize_text')">Standardize</button>
-      <button onclick="removeDuplicatesSelected()">Remove Duplicates</button>
-      <input type="text" id="dupColumn" placeholder="Column name for duplicates" />
-      <button onclick="callAction('remove_special_chars')">Remove Special Chars</button>
-      <button onclick="callAction('drop_missing')">Drop Missing Rows</button>
-      <button onclick="callAction('fill_missing')">Fill Missing w/ 0</button>
-    </div>
-
-    <div class="controls">
-      <input type="text" id="dtypeColumn" placeholder="Column to change dtype" />
-      <select id="dtypeSelect">
-        <option value="int">int</option>
-        <option value="float">float</option>
-        <option value="str">str</option>
-        <option value="bool">bool</option>
-        <option value="category">category</option>
-      </select>
-      <button onclick="changeDtype()">Change Data Type</button>
-    </div>
-
-    <div class="controls">
-      <input type="text" id="replaceColumn" placeholder="Column" />
-      <input type="text" id="replaceFrom" placeholder="From" />
-      <input type="text" id="replaceTo" placeholder="To" />
-      <button onclick="replaceValues()">Replace</button>
-    </div>
-
-    <div class="controls">
-      <input type="text" id="dropTableColumn" placeholder="Column to filter" />
-      <input type="text" id="dropTableValue" placeholder="Value" />
-
-      <select id="dropAction">
-        <option value="drop">Drop Selected</option>
-        <option value="keep">Keep Selected (Drop Others)</option>
-      </select>
-
-      <button onclick="dropValue()">Apply</button>
-    </div>
-
-    <div class="controls">
-      <input type="text" id="renameOld" placeholder="Old name" />
-      <input type="text" id="renameNew" placeholder="New name" />
-      <button onclick="renameColumn()">Rename Column</button>
-    </div>
-
-    <div class="controls">
-      <input type="text" id="dropColumn" placeholder="Column to drop" />
-      <button onclick="dropColumn()">Drop Column</button>
-    </div>
-
-    <div class="controls">
-      <button onclick="undoReplace()">Undo Replace</button>
-      <button onclick="showDataProfile()">Show Data Profile</button>
-    </div>
-    <hr>
-    <h3>Mapping</h3>
-    <div class="controls">
-      <input type="file" id="mappingInput" />
-      <input type="text" id="mapTargetColumn" placeholder="Target column (e.g. subviolation)" />
-      <button onclick="uploadMappingCSV()">Upload Mapping CSV</button>
-      <button onclick="applySubviolationMapping()">Apply Mapping</button>
-      <button onclick="toggleMappingSidebar()">Toggle Mapping Sidebar</button>
-    </div>
-
-    <!-- Sidebar for mapping data -->
-    <div id="mappingSidebar" class="mapping-sidebar">
-      <div class="sidebar-header">
-        <span><strong>Mapping CSV Preview</strong></span>
-        <button onclick="toggleMappingSidebar()">×</button>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+          <span>DC</span>
+        </div>
+        <div class="sidebar-brand-text">
+          <span>Data Cleaner</span>
+          <span>Studio</span>
+        </div>
       </div>
-      <div id="mappingPreview"></div>
-    </div>
-    <div id="output"></div>
-    <div id="chart">
-      <img id="chartImage" src="" alt="" />
+
+      <ul class="sidebar-nav">
+        <li><a href="#" class="sidebar-link active"><i class="bi bi-grid-1x2-fill"></i><span>Workspace</span></a></li>
+
+        <!-- IMPORT DATA BUTTON -->
+        <li>
+          <a href="#" class="sidebar-link" onclick="toggleImportSidebar()">
+            <i class="bi bi-upload"></i><span>Import Data</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <span>Session not saved automatically.</span>
+        <span>Export CSV before closing.</span>
+      </div>
+    </aside>
+
+    <!-- Main area -->
+    <div class="main-area">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div>
+            <div class="topbar-title">Data Cleaner</div>
+            <div class="topbar-subtitle">Interactive data cleaning workspace</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <span class="pill-badge">
+            <i class="bi bi-cpu"></i> AI-assisted cleaning
+          </span>
+          <button class="btn-ghost" onclick="window.location.href='/export_csv'">
+            <i class="bi bi-download"></i> Export CSV
+          </button>
+          <div class="user-avatar">
+            <i class="bi bi-robot"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="content-wrap">
+
+        <!-- LOAD DATA CARD (top) -->
+      
+        <div class="row g-3">
+          <div class="col-12 col-xl-8">
+            <div class="card-pro">
+              <div class="card-header-pro">
+                <div class="card-header-main">
+                  <div class="card-title-pro">Data Preview</div>
+                  <div class="card-subtitle-pro">This reflects the current in-memory dataset after all operations.</div>
+                </div>
+                <button class="btn-ghost" onclick="reloadData()">
+                  <i class="bi bi-arrow-clockwise"></i> Refresh view
+                </button>
+              </div>
+              <div id="output"></div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-4">
+            <div class="card-pro">
+              <div class="card-header-pro">
+                <div class="card-header-main">
+                  <div class="card-title-pro">Cleaning Operations</div>
+                  <div class="card-subtitle-pro">Standardization, missing values, and duplicates.</div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <div class="tool-group-label">Quick actions</div>
+                <div class="tool-chip-row">
+                  <button class="tool-chip success" onclick="callAction('standardize_text')">
+                    <i class="bi bi-type"></i> Standardize text
+                  </button>
+                  <button class="tool-chip danger" onclick="removeDuplicatesSelected()">
+                    <i class="bi bi-layers"></i> Remove duplicates
+                  </button>
+                  <button class="tool-chip" onclick="callAction('remove_special_chars')">
+                    <i class="bi bi-slash-circle"></i> Remove special chars
+                  </button>
+                  <button class="tool-chip" onclick="callAction('drop_missing')">
+                    <i class="bi bi-dash-circle"></i> Drop missing rows
+                  </button>
+                  <button class="tool-chip" onclick="callAction('fill_missing')">
+                    <i class="bi bi-plus-circle"></i> Fill missing with 0
+                  </button>
+                  <button class="tool-chip" onclick="undoReplace()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Undo replace
+                  </button>
+                  <button class="tool-chip" onclick="showDataProfile()">
+                    <i class="bi bi-bar-chart-line"></i> Data profile
+                  </button>
+                </div>
+              </div>
+
+              <div class="mb-2">
+                <div class="tool-group-label">Duplicates</div>
+                <div class="d-flex flex-wrap gap-2">
+                  <input type="text" id="dupColumn" class="form-control mini-input"
+                    placeholder="Column name for duplicates" />
+                  <button class="tool-chip danger" onclick="removeDuplicatesSelected()">
+                    <i class="bi bi-layers-half"></i> Remove duplicates
+                  </button>
+                </div>
+              </div>
+              <div style="height:220px; position:relative;">
+                <canvas id="customChart" style="width:100%; height:100%;"></canvas>
+              </div>
+              <div class="card-header-pro">
+                <div class="card-header-main">
+                  <div class="card-title-pro">Transform & Structure</div>
+                  <div class="card-subtitle-pro">Data types, replacements, filters, and columns.</div>
+                </div>
+              </div>
+
+              <!-- Data type -->
+              <div class="mb-3">
+                <div class="tool-group-label">Change data type</div>
+                <div class="d-flex flex-wrap gap-2">
+                  <input type="text" id="dtypeColumn" class="form-control mini-input" placeholder="Column name" />
+                  <select id="dtypeSelect" class="form-select mini-select" style="max-width:120px;">
+                    <option value="int">int</option>
+                    <option value="float">float</option>
+                    <option value="str">str</option>
+                    <option value="bool">bool</option>
+                    <option value="category">category</option>
+                  </select>
+                  <button class="tool-chip" onclick="changeDtype()">
+                    <i class="bi bi-arrow-left-right"></i> Apply
+                  </button>
+                </div>
+              </div>
+
+              <!-- Replace -->
+              <div class="mb-3">
+                <div class="tool-group-label">Replace values</div>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                  <input type="text" id="replaceColumn" class="form-control mini-input" placeholder="Column" />
+                  <input type="text" id="replaceFrom" class="form-control mini-input" placeholder="From" />
+                  <input type="text" id="replaceTo" class="form-control mini-input" placeholder="To" />
+                </div>
+                <div class="tool-chip-row">
+                  <button class="tool-chip" onclick="replaceValues(false)">
+                    <i class="bi bi-arrow-repeat"></i> Replace (normal)
+                  </button>
+                  <button class="tool-chip danger" onclick="replaceValues(true)">
+                    <i class="bi bi-shield-lock"></i> Replace (sensitive)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CLEANING OPERATIONS (FULL WIDTH, UNDER PREVIEW) -->
+          <div class="card-pro">
+            <div class="card-header-pro">
+              <div class="card-header-main">
+                <div class="card-title-pro">Quick Chart</div>
+                <div class="card-subtitle-pro">Plot one column against another for a fast visual check.</div>
+              </div>
+            </div>
+
+            <div class="mb-2 d-flex flex-wrap gap-2">
+              <select id="chartType" class="form-select mini-select" style="max-width:120px;">
+                <option value="bar">Bar</option>
+                <option value="line">Line</option>
+                <option value="pie">Pie</option>
+                <option value="doughnut">Doughnut</option>
+              </select>
+              <input type="text" id="xAxisColumn" class="form-control mini-input" placeholder="X axis column" />
+              <input type="text" id="yAxisColumn" class="form-control mini-input" placeholder="Y axis column" />
+              <button class="tool-chip" onclick="drawChart()">
+                <i class="bi bi-graph-up"></i> Draw chart
+              </button>
+            </div>
+
+          </div>
+
+          <!-- TRANSFORM & STRUCTURE (FULL WIDTH UNDER CLEANING) -->
+          <div class="card-pro">
+            <div class="mb-3">
+              <div class="tool-group-label">Filter rows</div>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <input type="text" id="dropTableColumn" class="form-control mini-input" placeholder="Column" />
+                <input type="text" id="dropTableValue" class="form-control mini-input" placeholder="Value" />
+                <select id="dropAction" class="form-select mini-select" style="max-width:160px;">
+                  <option value="drop">Drop selected</option>
+                  <option value="keep">Keep selected (drop others)</option>
+                </select>
+              </div>
+              <button class="tool-chip danger" onclick="dropValue()">
+                <i class="bi bi-filter-circle"></i> Apply filter
+              </button>
+            </div>
+
+            <!-- Rename / drop columns -->
+            <div class="mb-1">
+              <div class="tool-group-label">Columns</div>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <input type="text" id="renameOld" class="form-control mini-input" placeholder="Old name" />
+                <input type="text" id="renameNew" class="form-control mini-input" placeholder="New name" />
+                <button class="tool-chip" onclick="renameColumn()">
+                  <i class="bi bi-input-cursor-text"></i> Rename
+                </button>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <input type="text" id="dropColumn" class="form-control mini-input" placeholder="Column to drop" />
+                <button class="tool-chip danger" onclick="dropColumn()">
+                  <i class="bi bi-x-octagon"></i> Drop column
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAPPING & BARANGAY -->
+        <div class="card-pro">
+          <div class="card-header-pro">
+            <div class="card-header-main">
+              <div class="card-title-pro">Mapping & Barangay Tools</div>
+              <div class="card-subtitle-pro">Apply lookup tables and fix barangay inconsistencies.</div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <!-- Mapping -->
+            <div class="col-12 col-lg-6">
+              <div class="tool-group-label">Subviolation Mapping</div>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <input type="file" id="mappingInput" class="form-control form-control-sm" />
+                <input type="text" id="mapTargetColumn" class="form-control mini-input"
+                  placeholder="Target column (e.g. subviolation)" />
+              </div>
+              <div class="tool-chip-row">
+                <button class="tool-chip" onclick="uploadMappingCSV()">
+                  <i class="bi bi-file-earmark-arrow-up"></i> Upload mapping CSV
+                </button>
+                <button class="tool-chip success" onclick="applySubviolationMapping()">
+                  <i class="bi bi-diagram-3"></i> Apply mapping
+                </button>
+                <button class="tool-chip" onclick="toggleMappingSidebar()">
+                  <i class="bi bi-layout-sidebar-inset"></i> Toggle mapping preview
+                </button>
+              </div>
+            </div>
+
+            <!-- Barangay -->
+            <div class="col-12 col-lg-6">
+              <div class="tool-group-label">Barangay Mapping</div>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <input type="file" id="barangayInput" class="form-control form-control-sm" />
+                <input type="text" id="barangayTarget" class="form-control mini-input"
+                  placeholder="Target column name" />
+              </div>
+              <div class="tool-chip-row">
+                <button class="tool-chip" onclick="uploadBarangayCSV()">
+                  <i class="bi bi-file-earmark-arrow-up"></i> Upload barangay CSV
+                </button>
+                <button class="tool-chip success" onclick="applyBarangayMapping()">
+                  <i class="bi bi-arrow-right-circle"></i> Apply mapping
+                </button>
+                <button class="tool-chip" onclick="toggleBarangaySidebar()">
+                  <i class="bi bi-layout-sidebar-inset-reverse"></i> Toggle barangay preview
+                </button>
+                <button class="tool-chip danger" onclick="showUnalignedBarangays()">
+                  <i class="bi bi-exclamation-triangle"></i> Unaligned
+                </button>
+                <button class="tool-chip" onclick="exportUnaligned()">
+                  <i class="bi bi-download"></i> Export unaligned
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OPTIONAL STATIC CHART IMAGE (IF BACKEND GENERATES PNG) -->
+        <div id="chart">
+          <img id="chartImage" src="" alt="" />
+        </div>
+      </main>
     </div>
   </div>
 
+  <!-- Mapping sidebar -->
+  <div id="mappingSidebar" class="mapping-sidebar">
+    <div class="sidebar-header">
+      <span><strong>Mapping CSV Preview</strong></span>
+      <button onclick="toggleMappingSidebar()">×</button>
+    </div>
+    <div id="mappingPreview" class="p-2"></div>
+  </div>
+
+  <!-- Barangay sidebar -->
+  <div id="barangaySidebar" class="mapping-sidebar">
+    <div class="sidebar-header">
+      <span><strong>Barangay CSV Preview</strong></span>
+      <button onclick="toggleBarangaySidebar()">×</button>
+    </div>
+    <div id="barangayPreview" class="p-2"></div>
+
+    <!-- Unaligned Barangays Modal -->
+    <div id="unalignedModal" class="modal">
+      <div class="modal-content">
+        <button class="close-btn" onclick="closeUnalignedModal()">&times;</button>
+        <h3>Unaligned Barangays</h3>
+        <div id="unalignedTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT SIDEBAR (separate sibling) -->
+  <div id="importSidebar" class="mapping-sidebar">
+    <div class="sidebar-header">
+      <span><strong>Import CSV</strong></span>
+      <button onclick="toggleImportSidebar()">×</button>
+    </div>
+
+    <div class="p-3">
+      <div class="dropzone" id="importDropzone">
+        <div class="dropzone-icon">
+          <i class="bi bi-cloud-arrow-up-fill"></i>
+        </div>
+
+        <div class="dropzone-title">Drop a CSV file here or click to browse</div>
+        <div class="dropzone-subtext">Only CSV format is supported.</div>
+
+        <input type="file" id="importFileInput" />
+        <div class="file-name" id="importFileNameDisplay"></div>
+
+        <div class="mt-3 d-flex justify-content-center gap-2">
+          <button class="btn-soft" onclick="sidebarUploadCSV()">
+            <i class="bi bi-upload"></i> Import CSV
+          </button>
+
+          <button class="magic-button" onclick="callAction('magic_clean')">
+            <i class="bi bi-stars"></i> Magic Clean
+            <span class="beta-label">Beta</span>
+            <div class="sparkle-container"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data profile modal -->
   <div id="dataProfileModal">
     <div class="modal-content">
       <span onclick="closeModal()">&times;</span>
@@ -395,345 +1089,447 @@
   </div>
 
   <script>
-    function callAction(action) {
-      fetch(`/${action}`)
-        .then((res) => res.text())
-        .then((data) => {
-          if (action.includes('chart')) {
-            const imgPath = `/static/${action === 'bar_chart' ? 'bar_chart.png' : 'pie_chart.png'}`;
-            document.getElementById('chartImage').src = imgPath + `?t=${new Date().getTime()}`;
-            document.getElementById('output').innerText = data;
-          } else if (action === 'missing_values') {
-            fetch('/missing_values')
-              .then((res) => res.json())
-              .then((json) => document.getElementById('output').innerText = JSON.stringify(json, null, 2));
-          } else {
-            document.getElementById('output').innerHTML = data; // <-- FIXED
-          }
-        });
+    // Helper: Initialize DataTable on any new table
+    function initDataTable() {
+      const table = $("#mappingPreview table, #output table, #barangayPreview table, #unalignedTable table");
+      if ($.fn.DataTable.isDataTable(table)) {
+        table.DataTable().destroy();
+      }
+      table.DataTable({
+        pageLength: 20,
+        lengthMenu: [10, 20, 50, 100],
+        responsive: true
+      });
     }
-    function uploadCSV() {
+
+    function showLoader() {
+      const loader = document.getElementById('loader');
+      if (loader) loader.style.display = 'block';
+    }
+
+    function hideLoader() {
+      const loader = document.getElementById('loader');
+      if (loader) loader.style.display = 'none';
+    }
+
+    // Generalized fetch wrapper with loader
+    async function fetchWithLoader(url, options = {}) {
+      showLoader();
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const text = await response.text();
+        return text;
+      } catch (err) {
+        alert("Error: " + err);
+        console.error(err);
+        return null;
+      } finally {
+        hideLoader();
+      }
+    }
+
+    // --- CSV upload (main Load Data card) ---
+    async function uploadCSV() {
       const fileInput = document.getElementById('fileInput');
       if (!fileInput.files.length) {
         alert("Please select a CSV file to upload.");
         return;
       }
-
       const formData = new FormData();
       formData.append('file', fileInput.files[0]);
 
-      // 🔵 Show loader
-      document.getElementById('loader').style.display = 'block';
-
-      fetch('/load_csv', {
-        method: 'POST',
-        body: formData,
-      })
-        .then((res) => res.text())
-        .then((data) => {
-          document.getElementById('output').innerHTML = data;
-          $('#output table').DataTable({
-            pageLength: 20,
-            scrollX: true,
-            paging: true
-          });
-        })
-        .catch(error => {
-          alert("Error uploading file: " + error);
-        })
-        .finally(() => {
-          // 🔵 Hide loader
-          document.getElementById('loader').style.display = 'none';
-        });
-    }
-
-    function loadSample() {
-      fetch('/load_sample')
-        .then((res) => res.text())
-        .then((data) => {
-          document.getElementById('output').innerHTML = data; // <-- FIXED
-        });
-    }
-    function removeDuplicatesSelected() {
-      const col = document.getElementById('dupColumn').value.trim();
-      if (!col) {
-        alert('Please enter a column name.');
-        return;
+      const data = await fetchWithLoader('/load_csv', { method: 'POST', body: formData });
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
       }
-      fetch(`/remove_duplicates_by_column?column=${encodeURIComponent(col)}`)
-        .then(res => res.text())
-        .then(data => {
-          document.getElementById('output').innerHTML = data;
-        });
     }
-    function changeDtype() {
+
+    async function loadSample() {
+      const data = await fetchWithLoader('/load_sample');
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function removeDuplicatesSelected() {
+      const col = document.getElementById('dupColumn').value.trim();
+      if (!col) return alert('Please enter a column name.');
+      const data = await fetchWithLoader(`/remove_duplicates_by_column?column=${encodeURIComponent(col)}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function changeDtype() {
       const column = document.getElementById('dtypeColumn').value.trim();
       const dtype = document.getElementById('dtypeSelect').value;
-      if (!column) {
-        alert('Please enter a column name.');
-        return;
+      if (!column) return alert('Please enter a column name.');
+      const data = await fetchWithLoader(`/change_dtype?column=${encodeURIComponent(column)}&dtype=${encodeURIComponent(dtype)}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
       }
-      fetch(`/change_dtype?column=${encodeURIComponent(column)}&dtype=${encodeURIComponent(dtype)}`)
-        .then(res => res.text())
-        .then(data => {
-          document.getElementById('output').innerHTML = data;
-        });
     }
 
-    function replaceValues() {
+    async function replaceValues(sensitive = false, page = 1) {
       const column = document.getElementById('replaceColumn').value.trim();
       const from = document.getElementById('replaceFrom').value;
       const to = document.getElementById('replaceTo').value;
-      if (!column) {
-        alert('Please enter a column name.');
-        return;
+      if (!column) return alert('Please enter a column name.');
+
+      const endpoint = sensitive ? "/replace_values_sensitive" : "/replace_values";
+      const data = await fetchWithLoader(`${endpoint}?column=${encodeURIComponent(column)}&replace_from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&page=${page}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
       }
-      fetch(`/replace_values?column=${encodeURIComponent(column)}&replace_from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
-        .then(res => res.text())
-        .then(data => {
-          document.getElementById('output').innerHTML = data;
-        });
     }
 
-    function renameColumn() {
+    async function renameColumn() {
       const oldName = document.getElementById('renameOld').value.trim();
       const newName = document.getElementById('renameNew').value.trim();
-      if (!oldName || !newName) {
-        alert('Please enter both old and new column names.');
-        return;
+      if (!oldName || !newName) return alert('Please enter both old and new column names.');
+
+      const data = await fetchWithLoader(`/rename_column?old=${encodeURIComponent(oldName)}&new=${encodeURIComponent(newName)}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
       }
-      fetch(`/rename_column?old=${encodeURIComponent(oldName)}&new=${encodeURIComponent(newName)}`)
-        .then(res => res.text())
-        .then(data => {
-          document.getElementById('output').innerHTML = data;
-        });
     }
 
-    function dropColumn() {
+    async function dropColumn() {
       const column = document.getElementById('dropColumn').value.trim();
-      if (!column) {
-        alert('Please enter a column name.');
-        return;
+      if (!column) return alert('Please enter a column name.');
+
+      const data = await fetchWithLoader(`/drop_column?column=${encodeURIComponent(column)}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
       }
-      fetch(`/drop_column?column=${encodeURIComponent(column)}`)
-        .then(res => res.text())
-        .then(data => {
-          document.getElementById('output').innerHTML = data;
-        });
     }
 
-    function undoReplace() {
-      fetch('/undo_replace')
-        .then(res => res.text())
-        .then(data => {
-          document.getElementById('output').innerHTML = data;
-        });
-    }
-
-    function showDataProfile() {
-      fetch('/data_profile')
-        .then(response => response.text())
-        .then(html => {
-          document.getElementById('modal-body').innerHTML = html;
-          document.getElementById('dataProfileModal').style.display = 'block';
-        })
-        .catch(error => {
-          alert("Error loading data profile: " + error);
-        });
-    }
-
-    function dropValue() {
-      const column = document.getElementById('dropTableColumn').value;
-      const value = document.getElementById('dropTableValue').value;
-      const action = document.getElementById('dropAction').value;
-
-      if (!column || !value) {
-        alert("Please enter both column name and value.");
-        return;
+    async function undoReplace() {
+      const data = await fetchWithLoader('/undo_replace');
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
       }
+    }
 
-      fetch(`/drop_value?column=${encodeURIComponent(column)}&value=${encodeURIComponent(value)}&action=${action}`)
-        .then(response => response.text())
-        .then(data => {
-          document.getElementById('output').innerHTML = data;
-        })
-        .catch(error => console.error('Error:', error));
+    async function showDataProfile() {
+      const html = await fetchWithLoader('/data_profile');
+      if (html) {
+        document.getElementById('modal-body').innerHTML = html;
+        document.getElementById('dataProfileModal').style.display = 'block';
+      }
     }
 
     function closeModal() {
       document.getElementById('dataProfileModal').style.display = 'none';
     }
-  </script>
-  <script>
+
+    async function dropValue() {
+      const column = document.getElementById('dropTableColumn').value;
+      const value = document.getElementById('dropTableValue').value;
+      const action = document.getElementById('dropAction').value;
+      if (!column || !value) return alert("Please enter both column name and value.");
+
+      const data = await fetchWithLoader(`/drop_value?column=${encodeURIComponent(column)}&value=${encodeURIComponent(value)}&action=${action}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    // --- Drag & drop for main Load Data card ---
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('fileInput');
     const fileNameDisplay = document.getElementById('fileNameDisplay');
 
-    // Click opens file dialog
-    dropzone.addEventListener('click', () => {
-      fileInput.click();
-    });
+    if (dropzone && fileInput && fileNameDisplay) {
+      dropzone.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        fileInput.click();
+      });
 
-    // Highlight dropzone on drag
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropzone.classList.add('dragover');
-    });
+      dropzone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
 
-    dropzone.addEventListener('dragleave', () => {
-      dropzone.classList.remove('dragover');
-    });
+      dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
 
-    // Handle dropped file
-    dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.classList.remove('dragover');
+      dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          fileInput.files = files;
+          showFileName(files[0].name);
+          fileInput.dispatchEvent(new Event('change'));
+        }
+      });
 
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        fileInput.files = files;
-        showFileName(files[0].name);
-
-        // Optional: Trigger change
-        const event = new Event('change');
-        fileInput.dispatchEvent(event);
-      }
-    });
-
-    // Show file name when selected manually
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length > 0) {
-        showFileName(fileInput.files[0].name);
-      }
-    });
-
-    function showFileName(name) {
-      fileNameDisplay.textContent = `Selected file: ${name}`;
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) showFileName(fileInput.files[0].name);
+      });
     }
 
-    function callAction(endpoint) {
-      fetch(`/${endpoint}`)
-        .then(response => response.text())
-        .then(html => {
-          document.getElementById('output').innerHTML = html;
-          alert('✔️ Action "' + endpoint + '" complete!');
-        });
+    function showFileName(name) { fileNameDisplay.textContent = `Selected file: ${name}`; }
+
+    // General action caller
+    async function callAction(endpoint) {
+      const html = await fetchWithLoader(`/${endpoint}`);
+      if (html) {
+        document.getElementById('output').innerHTML = html;
+        initDataTable();
+        alert('✔️ Action "' + endpoint + '" complete!');
+      }
     }
+
+    // --- ChartJS ---
     let chartInstance = null;
-
-    function drawChart() {
+    async function drawChart() {
       const chartType = document.getElementById("chartType").value;
       const xColumn = document.getElementById("xAxisColumn").value;
       const yColumn = document.getElementById("yAxisColumn").value;
-
-      fetch(`/generate_chart_data?x=${xColumn}&y=${yColumn}`)
-        .then(res => res.json())
-        .then(data => {
-          const ctx = document.getElementById("customChart").getContext("2d");
-
-          if (chartInstance) {
-            chartInstance.destroy();
-          }
-
-          chartInstance = new Chart(ctx, {
-            type: chartType,
-            data: {
-              labels: data.labels,
-              datasets: [{
-                label: `${yColumn} vs ${xColumn}`,
-                data: data.values,
-                backgroundColor: 'rgba(75, 192, 192, 0.4)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 2
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-            }
-          });
-        })
-        .catch(err => {
-          alert("Chart load failed: " + err);
+      try {
+        showLoader();
+        const res = await fetch(`/generate_chart_data?x=${encodeURIComponent(xColumn)}&y=${encodeURIComponent(yColumn)}`);
+        const data = await res.json();
+        const ctx = document.getElementById("customChart").getContext("2d");
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+          type: chartType,
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: `${yColumn} vs ${xColumn}`,
+              data: data.values,
+              borderWidth: 2,
+              fill: chartType === 'line' ? false : true
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
         });
+      } catch (err) {
+        alert("Chart load failed: " + err);
+      } finally {
+        hideLoader();
+      }
     }
+
+    // --- Sparkles ---
     const sparkleContainer = document.querySelector('.sparkle-container');
     const sparkleChars = ['✨'];
-
     function createSparkle() {
+      if (!sparkleContainer) return;
       const sparkle = document.createElement('span');
       sparkle.classList.add('sparkle');
       sparkle.innerText = sparkleChars[Math.floor(Math.random() * sparkleChars.length)];
       sparkle.style.left = `${Math.random() * 100}%`;
       sparkle.style.top = `${Math.random() * 100}%`;
       sparkle.style.fontSize = `${12 + Math.random() * 10}px`;
-
       sparkleContainer.appendChild(sparkle);
-
-      setTimeout(() => {
-        sparkle.remove();
-      }, 4000);
+      setTimeout(() => sparkle.remove(), 4000);
     }
-
-    // Create sparkles continuously
-    setInterval(createSparkle, 400);
+    setInterval(createSparkle, 500);
 
     function toggleMappingSidebar() {
       const sidebar = document.getElementById("mappingSidebar");
-      const body = document.body;
+      document.body.classList.toggle("sidebar-open");
+      sidebar.classList.toggle("open");
+    }
 
-      const isOpen = sidebar.classList.contains("open");
+    function toggleBarangaySidebar() {
+      const sidebar = document.getElementById("barangaySidebar");
+      document.body.classList.toggle("sidebar-open");
+      sidebar.classList.toggle("open");
+    }
 
-      if (isOpen) {
-        sidebar.classList.remove("open");
-        body.classList.remove("sidebar-open");
-      } else {
-        sidebar.classList.add("open");
-        body.classList.add("sidebar-open");
+    // --- Mapping uploads ---
+    async function uploadMappingCSV(page = 1) {
+      const fileInput = document.getElementById("mappingInput");
+      const file = fileInput.files[0];
+      if (!file) return alert("Please select a mapping CSV file.");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const html = await fetchWithLoader(`/upload_mapping_csv`, { method: "POST", body: formData });
+      if (html) {
+        document.getElementById("mappingPreview").innerHTML = html;
+        document.getElementById("mappingSidebar").classList.add("open");
+        document.body.classList.add("sidebar-open");
+        initDataTable();
       }
     }
 
-    function uploadMappingCSV() {
-      const fileInput = document.getElementById("mappingInput");
-      const file = fileInput.files[0];
-      if (!file) {
-        alert("Please select a mapping CSV file.");
+    async function applySubviolationMapping() {
+      const targetCol = document.getElementById("mapTargetColumn").value;
+      if (!targetCol) return alert("Please specify the target column to map (e.g. subviolation)");
+      const html = await fetchWithLoader(`/apply_subviolation_mapping?target_col=${encodeURIComponent(targetCol)}`);
+      if (html) {
+        document.getElementById("output").innerHTML = html;
+        initDataTable();
+      }
+    }
+
+    async function uploadBarangayCSV() {
+      const file = document.getElementById("barangayInput").files[0];
+      const targetColumn = document.getElementById("barangayTarget").value.trim();
+      if (!file) return alert("Please select a Barangay CSV file.");
+      if (!targetColumn) return alert("Please enter a target column name.");
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("targetColumn", targetColumn);
+
+      const html = await fetchWithLoader("/upload_barangay_csv", { method: "POST", body: formData });
+      if (html) {
+        document.getElementById("barangayPreview").innerHTML = html;
+        document.getElementById("barangaySidebar").classList.add("open");
+        document.body.classList.add("sidebar-open");
+        initDataTable();
+      }
+    }
+
+    async function applyBarangayMapping() {
+      const targetColumn = document.getElementById("barangayTarget").value.trim();
+      if (!targetColumn) return alert("Please enter a target column name.");
+
+      const formData = new FormData();
+      formData.append("targetColumn", targetColumn);
+
+      const html = await fetchWithLoader("/apply_barangay_mapping", { method: "POST", body: formData });
+      if (html) {
+        document.getElementById("output").innerHTML = html;
+        initDataTable();
+      }
+    }
+
+    async function showUnalignedBarangays() {
+      const html = await fetchWithLoader('/show_unaligned_barangays');
+      if (html) {
+        document.getElementById('unalignedTable').innerHTML = html;
+        document.getElementById('unalignedModal').style.display = 'block';
+        initDataTable();
+      }
+    }
+
+    function closeUnalignedModal() {
+      document.getElementById('unalignedModal').style.display = 'none';
+    }
+
+    function exportUnaligned() {
+      const targetColumn = document.getElementById("barangayTarget").value.trim();
+      if (!targetColumn) return alert("Please enter a target column name.");
+      window.location.href = `/export_unaligned_barangays?targetColumn=${encodeURIComponent(targetColumn)}`;
+    }
+
+    async function reloadData(page = 1) {
+      showLoader();
+      try {
+        const res = await fetch(`/reload_data?page=${page}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const html = await res.text();
+
+        document.getElementById('output').innerHTML = html;
+
+        const table = $("#output table");
+        if ($.fn.DataTable.isDataTable(table)) {
+          table.DataTable().destroy();
+        }
+        table.DataTable({
+          pageLength: 20,
+          lengthMenu: [10, 20, 50, 100],
+          displayStart: (page - 1) * 20
+        });
+      } catch (err) {
+        console.error(err);
+        alert("Failed to reload data: " + err);
+      } finally {
+        hideLoader();
+      }
+    }
+
+    // Ask for confirmation before leaving the page
+    window.addEventListener("beforeunload", function (e) {
+      const confirmationMessage = "You have unsaved changes. Make sure to export your cleaned CSV before leaving.";
+      e.preventDefault();
+      e.returnValue = confirmationMessage;
+      return confirmationMessage;
+    });
+
+    function toggleImportSidebar() {
+      const sidebar = document.getElementById("importSidebar");
+      document.body.classList.toggle("sidebar-open");
+      sidebar.classList.toggle("open");
+    }
+
+    async function sidebarUploadCSV() {
+      const fileInput = document.getElementById('importFileInput');
+      if (!fileInput.files.length) {
+        alert("Please select a CSV file.");
         return;
       }
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileInput.files[0]);
 
-      fetch("/upload_mapping_csv", {
+      const html = await fetchWithLoader('/load_csv', {
         method: "POST",
-        body: formData,
-      })
-        .then((res) => res.text())
-        .then((html) => {
-          document.getElementById("mappingPreview").innerHTML = html;
+        body: formData
+      });
 
-          // Auto show sidebar if mapping uploaded
-          const sidebar = document.getElementById("mappingSidebar");
-          sidebar.classList.add("open");
-          document.body.classList.add("sidebar-open");
-        })
-        .catch((err) => alert("Failed to upload mapping CSV: " + err));
-    }
-
-    function applySubviolationMapping() {
-      const targetCol = document.getElementById("mapTargetColumn").value;
-      if (!targetCol) {
-        alert("Please specify the target column to map (e.g. subviolation)");
-        return;
+      if (html) {
+        document.getElementById("output").innerHTML = html;
+        initDataTable();
+        toggleImportSidebar();
       }
-
-      fetch(`/apply_subviolation_mapping?target_col=${encodeURIComponent(targetCol)}`)
-        .then((res) => res.text())
-        .then((html) => {
-          document.getElementById("output").innerHTML = html;
-        })
-        .catch((err) => alert("Error applying mapping: " + err));
     }
+
+    // Import Sidebar Dropzone
+    const importDropzone = document.getElementById("importDropzone");
+    const importFile = document.getElementById("importFileInput");
+    const importNameDisplay = document.getElementById("importFileNameDisplay");
+
+    if (importDropzone && importFile && importNameDisplay) {
+      importDropzone.addEventListener("click", (e) => {
+        if (!e.target.closest("button")) importFile.click();
+      });
+
+      importDropzone.addEventListener("dragover", e => {
+        e.preventDefault();
+        importDropzone.classList.add("dragover");
+      });
+
+      importDropzone.addEventListener("dragleave", () =>
+        importDropzone.classList.remove("dragover")
+      );
+
+      importDropzone.addEventListener("drop", e => {
+        e.preventDefault();
+        importDropzone.classList.remove("dragover");
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          importFile.files = files;
+          importNameDisplay.textContent = "Selected file: " + files[0].name;
+        }
+      });
+
+      importFile.addEventListener("change", () => {
+        if (importFile.files.length > 0) {
+          importNameDisplay.textContent =
+            "Selected file: " + importFile.files[0].name;
+        }
+      });
+    }
+
   </script>
 </body>
 

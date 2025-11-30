@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .table {
+      font-size: 14px;
+    }
+
+    .table th {
+      background-color: #343a40;
+      color: white;
+      text-align: center;
+    }
+
+    .pagination .page-link {
+      color: #343a40;
+    }
+
+    .pagination .active .page-link {
+      background-color: #343a40;
+      border-color: #343a40;
+      color: white;
+    }
+
+    .table-responsive {
+      border-radius: 0.75rem;
+    }
+  </style>
+  <title>Data Cleaning App</title>
+  <style>
+    :root {
+      --primary-color: #0d6efd;
+      --secondary-color: #f8f9fa;
+      --accent-color: #198754;
+      --danger-color: #dc3545;
+      --text-color: #212529;
+      --light-border: #dee2e6;
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--secondary-color);
+      color: var(--text-color);
+    }
+
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .container {
+      width: 95vw;
+      margin: 30px auto;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    select {
+      padding: 10px;
+      border: 1px solid var(--light-border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      flex: 1;
+    }
+
+    button {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      font-size: 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #146c43;
+    }
+
+    hr {
+      margin: 30px 0;
+    }
+
+    #output {
+      margin-top: 20px;
+      background: #f1f3f5;
+      padding: 20px;
+      border-radius: var(--radius);
+      overflow-x: auto;
+    }
+
+    table.dataframe {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    table.dataframe th,
+    table.dataframe td {
+      padding: 10px;
+      border: 1px solid var(--light-border);
+      text-align: left;
+    }
+
+    table.dataframe th {
+      background-color: #e9ecef;
+    }
+
+    #chart img {
+      width: 100%;
+      margin-top: 20px;
+      border-radius: var(--radius);
+    }
+
+    #dataProfileModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+    }
+
+    #dataProfileModal .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 5% auto;
+      position: relative;
+    }
+
+    #dataProfileModal .modal-content span {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+
+    @media (max-width: 768px) {
+      .controls {
+        flex-direction: column;
+      }
+    }
+
+    .dropzone {
+      border: 2px dashed #3498db;
+      padding: 40px;
+      text-align: center;
+      border-radius: 10px;
+      cursor: pointer;
+      color: #2980b9;
+      transition: background 0.3s;
+    }
+
+    .dropzone.dragover {
+      background-color: #ecf0f1;
+    }
+
+    .dropzone input {
+      display: none;
+    }
+
+    .file-name {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .magic-button {
+      position: relative;
+      overflow: hidden;
+      background-color: #198754;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 8px;
+      z-index: 1;
+    }
+
+    .sparkle-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .sparkle {
+      position: absolute;
+      color: #fff;
+      font-size: 16px;
+      animation: sparkleMove 4s linear forwards;
+      opacity: 0;
+    }
+
+    @keyframes sparkleMove {
+      0% {
+        transform: scale(0.8) translateY(0);
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 1;
+      }
+
+      90% {
+        transform: scale(1.5) translateY(-80px) rotate(30deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(0.5) translateY(-100px) rotate(60deg);
+        opacity: 0;
+      }
+    }
+
+    /* Sidebar styles */
+    .mapping-sidebar {
+      position: fixed;
+      top: 0;
+      right: -420px;
+      width: 400px;
+      height: 100vh;
+      background: #ffffff;
+      border-left: 2px solid #ccc;
+      overflow-y: auto;
+      padding: 10px;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+      transition: right 0.3s ease;
+      z-index: 1000;
+    }
+
+    .mapping-sidebar.open {
+      right: 0;
+    }
+
+    /* Header inside sidebar */
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #eee;
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    body.sidebar-open .container {
+      margin-right: 420px;
+      transition: margin-right 0.3s ease;
+    }
+  </style>
+</head>
+
+<body><br><br><br>
+
+  <div id="loader"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:9999; text-align:center; padding-top:200px; font-size:22px; font-weight:bold; color:#0d6efd;">
+    ⏳ Processing, please wait...
+  </div>
+
+  <div class="container">
+    <center>
+      <h1>DATA CLEANER</h1>
+    </center>
+    <div class="dropzone" id="dropzone">
+      <p>📁 Drag and drop your file here or click to browse</p>
+      <input type="file" id="fileInput" />
+      <p class="file-name" id="fileNameDisplay"></p>
+    </div><br>
+    <div class="controls">
+      <button onclick="uploadCSV()">Import CSV</button>
+      <button onclick="loadSample()">Load Sample</button>
+      <button onclick="window.location.href='/export_csv'">Export CSV</button>
+      <button onclick="callAction('magic_clean')" class="magic-button">
+        🔒 Magic Clean <span class="beta-label">Beta</span>
+        <div class="sparkle-container"></div>
+      </button>
+      <button onclick="reloadData()">🔄</button>
+
+      <style>
+        .beta-label {
+          background-color: #ff9800;
+          color: white;
+          font-size: 0.6rem;
+          padding: 2px 6px;
+          margin-left: 8px;
+          border-radius: 3px;
+          vertical-align: middle;
+        }
+      </style>
+    </div>
+
+    <hr />
+
+    <div class="controls">
+      <button onclick="callAction('standardize_text')">Standardize</button>
+      <button onclick="removeDuplicatesSelected()">Remove Duplicates</button>
+      <input type="text" id="dupColumn" placeholder="Column name for duplicates" />
+      <button onclick="callAction('remove_special_chars')">Remove Special Chars</button>
+      <button onclick="callAction('drop_missing')">Drop Missing Rows</button>
+      <button onclick="callAction('fill_missing')">Fill Missing w/ 0</button>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="dtypeColumn" placeholder="Column to change dtype" />
+      <select id="dtypeSelect">
+        <option value="int">int</option>
+        <option value="float">float</option>
+        <option value="str">str</option>
+        <option value="bool">bool</option>
+        <option value="category">category</option>
+      </select>
+      <button onclick="changeDtype()">Change Data Type</button>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="replaceColumn" placeholder="Column" />
+      <input type="text" id="replaceFrom" placeholder="From" />
+      <input type="text" id="replaceTo" placeholder="To" />
+
+      <button onclick="replaceValues(false)">Replace (Non-Sensitive)</button>
+      <button onclick="replaceValues(true)">Replace (Sensitive)</button>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="dropTableColumn" placeholder="Column to filter" />
+      <input type="text" id="dropTableValue" placeholder="Value" />
+
+      <select id="dropAction">
+        <option value="drop">Drop Selected</option>
+        <option value="keep">Keep Selected (Drop Others)</option>
+      </select>
+
+      <button onclick="dropValue()">Apply</button>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="renameOld" placeholder="Old name" />
+      <input type="text" id="renameNew" placeholder="New name" />
+      <button onclick="renameColumn()">Rename Column</button>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="dropColumn" placeholder="Column to drop" />
+      <button onclick="dropColumn()">Drop Column</button>
+    </div>
+
+    <div class="controls">
+      <button onclick="undoReplace()">Undo Replace</button>
+      <button onclick="showDataProfile()">Show Data Profile</button>
+    </div>
+    <hr>
+    <h3>Mapping</h3>
+    <div class="controls">
+      <input type="file" id="mappingInput" />
+      <input type="text" id="mapTargetColumn" placeholder="Target column (e.g. subviolation)" />
+      <button onclick="uploadMappingCSV()">Upload Mapping CSV</button>
+      <button onclick="applySubviolationMapping()">Apply Mapping</button>
+      <button onclick="toggleMappingSidebar()">Toggle Mapping</button>
+    </div>
+
+    <!-- Sidebar for mapping data -->
+    <div id="mappingSidebar" class="mapping-sidebar">
+      <div class="sidebar-header">
+        <span><strong>Mapping CSV Preview</strong></span>
+        <button onclick="toggleMappingSidebar()">×</button>
+      </div>
+      <div id="mappingPreview"></div>
+    </div>
+
+    <input type="file" id="barangayInput" />
+    <input type="text" id="barangayTarget" placeholder="Enter target column name" />
+
+    <button onclick="uploadBarangayCSV()">Upload</button>
+    <button onclick="applyBarangayMapping()">Apply</button>
+    <button onclick="toggleMappingSidebar()">Barangay</button>
+    <button onclick="showUnalignedBarangays()">Unaligned</button>
+    <button onclick="exportUnaligned()">Export Unaligned</button>
+
+
+    <div id="barangaySidebar" class="mapping-sidebar">
+      <div class="sidebar-header">
+        <span><strong>Barangay CSV Preview</strong></span>
+        <button onclick="toggleBarangaySidebar()">×</button>
+      </div>
+      <div id="barangayPreview"></div>
+      <!-- Unaligned Barangays Modal -->
+      <div id="unalignedModal" class="modal">
+        <div class="modal-content">
+          <span class="close-btn" onclick="closeUnalignedModal()">&times;</span>
+          <h3>Unaligned Barangays</h3>
+          <div id="unalignedTable"></div>
+        </div>
+      </div>
+
+      <style>
+        .modal {
+          display: none;
+          position: fixed;
+          z-index: 1000;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          overflow: auto;
+          background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+          background-color: #fefefe;
+          margin: 5% auto;
+          padding: 20px;
+          border-radius: 8px;
+          width: 80%;
+          max-height: 80%;
+          overflow-y: auto;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+          position: relative;
+        }
+
+        .close-btn {
+          color: white;
+          background: red;
+          border: none;
+          padding: 5px 10px;
+          font-size: 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          position: absolute;
+          top: 10px;
+          right: 10px;
+        }
+      </style>
+
+    </div>
+
+
+    <div id="output"></div>
+    <div id="chart">
+      <img id="chartImage" src="" alt="" />
+    </div>
+  </div>
+
+
+
+  <div id="dataProfileModal">
+    <div class="modal-content">
+      <span onclick="closeModal()">&times;</span>
+      <div id="modal-body">
+        <!-- AJAX content goes here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ Helper: Initialize DataTable on any new table
+    function initDataTable() {
+      const table = $("#mappingPreview table, #output table");
+      if ($.fn.DataTable.isDataTable(table)) {
+        table.DataTable().destroy();
+      }
+      table.DataTable({
+        pageLength: 20,
+        lengthMenu: [10, 20, 50, 100],
+      });
+    }
+
+    function showLoader() {
+      const loader = document.getElementById('loader');
+      if (loader) loader.style.display = 'block';
+    }
+
+    function hideLoader() {
+      const loader = document.getElementById('loader');
+      if (loader) loader.style.display = 'none';
+    }
+
+    // ✅ Generalized fetch wrapper with loader
+    async function fetchWithLoader(url, options = {}) {
+      showLoader();
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const text = await response.text();
+        return text;
+      } catch (err) {
+        alert("Error: " + err);
+        console.error(err);
+        return null;
+      } finally {
+        hideLoader();
+      }
+    }
+
+    // --- CSV upload ---
+    async function uploadCSV() {
+      const fileInput = document.getElementById('fileInput');
+      if (!fileInput.files.length) {
+        alert("Please select a CSV file to upload.");
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      const data = await fetchWithLoader('/load_csv', { method: 'POST', body: formData });
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function loadSample() {
+      const data = await fetchWithLoader('/load_sample');
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function removeDuplicatesSelected() {
+      const col = document.getElementById('dupColumn').value.trim();
+      if (!col) return alert('Please enter a column name.');
+      const data = await fetchWithLoader(`/remove_duplicates_by_column?column=${encodeURIComponent(col)}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function changeDtype() {
+      const column = document.getElementById('dtypeColumn').value.trim();
+      const dtype = document.getElementById('dtypeSelect').value;
+      if (!column) return alert('Please enter a column name.');
+      const data = await fetchWithLoader(`/change_dtype?column=${encodeURIComponent(column)}&dtype=${encodeURIComponent(dtype)}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function replaceValues(sensitive = false, page = 1) {
+      const column = document.getElementById('replaceColumn').value.trim();
+      const from = document.getElementById('replaceFrom').value;
+      const to = document.getElementById('replaceTo').value;
+      if (!column) return alert('Please enter a column name.');
+
+      const endpoint = sensitive ? "/replace_values_sensitive" : "/replace_values";
+      const data = await fetchWithLoader(`${endpoint}?column=${encodeURIComponent(column)}&replace_from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&page=${page}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function renameColumn() {
+      const oldName = document.getElementById('renameOld').value.trim();
+      const newName = document.getElementById('renameNew').value.trim();
+      if (!oldName || !newName) return alert('Please enter both old and new column names.');
+
+      const data = await fetchWithLoader(`/rename_column?old=${encodeURIComponent(oldName)}&new=${encodeURIComponent(newName)}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function dropColumn() {
+      const column = document.getElementById('dropColumn').value.trim();
+      if (!column) return alert('Please enter a column name.');
+
+      const data = await fetchWithLoader(`/drop_column?column=${encodeURIComponent(column)}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function undoReplace() {
+      const data = await fetchWithLoader('/undo_replace');
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    async function showDataProfile() {
+      const html = await fetchWithLoader('/data_profile');
+      if (html) {
+        document.getElementById('modal-body').innerHTML = html;
+        document.getElementById('dataProfileModal').style.display = 'block';
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('dataProfileModal').style.display = 'none';
+    }
+
+    async function dropValue() {
+      const column = document.getElementById('dropTableColumn').value;
+      const value = document.getElementById('dropTableValue').value;
+      const action = document.getElementById('dropAction').value;
+      if (!column || !value) return alert("Please enter both column name and value.");
+
+      const data = await fetchWithLoader(`/drop_value?column=${encodeURIComponent(column)}&value=${encodeURIComponent(value)}&action=${action}`);
+      if (data) {
+        document.getElementById('output').innerHTML = data;
+        initDataTable();
+      }
+    }
+
+    // --- Drag & drop ---
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        showFileName(files[0].name);
+        fileInput.dispatchEvent(new Event('change'));
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) showFileName(fileInput.files[0].name);
+    });
+    function showFileName(name) { fileNameDisplay.textContent = `Selected file: ${name}`; }
+
+    // --- General action caller ---
+    async function callAction(endpoint) {
+      const html = await fetchWithLoader(`/${endpoint}`);
+      if (html) {
+        document.getElementById('output').innerHTML = html;
+        initDataTable();
+        alert('✔️ Action "' + endpoint + '" complete!');
+      }
+    }
+
+    // --- ChartJS ---
+    let chartInstance = null;
+    async function drawChart() {
+      const chartType = document.getElementById("chartType").value;
+      const xColumn = document.getElementById("xAxisColumn").value;
+      const yColumn = document.getElementById("yAxisColumn").value;
+      try {
+        showLoader();
+        const res = await fetch(`/generate_chart_data?x=${xColumn}&y=${yColumn}`);
+        const data = await res.json();
+        const ctx = document.getElementById("customChart").getContext("2d");
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+          type: chartType,
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: `${yColumn} vs ${xColumn}`,
+              data: data.values,
+              backgroundColor: 'rgba(75, 192, 192, 0.4)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 2
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      } catch (err) {
+        alert("Chart load failed: " + err);
+      } finally {
+        hideLoader();
+      }
+    }
+
+    // --- Sparkles ---
+    const sparkleContainer = document.querySelector('.sparkle-container');
+    const sparkleChars = ['✨'];
+    function createSparkle() {
+      const sparkle = document.createElement('span');
+      sparkle.classList.add('sparkle');
+      sparkle.innerText = sparkleChars[Math.floor(Math.random() * sparkleChars.length)];
+      sparkle.style.left = `${Math.random() * 100}%`;
+      sparkle.style.top = `${Math.random() * 100}%`;
+      sparkle.style.fontSize = `${12 + Math.random() * 10}px`;
+      sparkleContainer.appendChild(sparkle);
+      setTimeout(() => sparkle.remove(), 4000);
+    }
+    setInterval(createSparkle, 400);
+
+    function toggleMappingSidebar() {
+      const sidebar = document.getElementById("mappingSidebar");
+      document.body.classList.toggle("sidebar-open");
+      sidebar.classList.toggle("open");
+    }
+    function toggleBarangaySidebar() {
+      const sidebar = document.getElementById("barangaySidebar");
+      document.body.classList.toggle("sidebar-open");
+      sidebar.classList.toggle("open");
+    }
+
+    // --- Mapping uploads ---
+    async function uploadMappingCSV(page = 1) {
+      const fileInput = document.getElementById("mappingInput");
+      const file = fileInput.files[0];
+      if (!file) return alert("Please select a mapping CSV file.");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const html = await fetchWithLoader(`/upload_mapping_csv`, { method: "POST", body: formData });
+      if (html) {
+        document.getElementById("mappingPreview").innerHTML = html;
+        document.getElementById("mappingSidebar").classList.add("open");
+        document.body.classList.add("sidebar-open");
+        initDataTable();
+      }
+    }
+
+    async function applySubviolationMapping() {
+      const targetCol = document.getElementById("mapTargetColumn").value;
+      if (!targetCol) return alert("Please specify the target column to map (e.g. subviolation)");
+      const html = await fetchWithLoader(`/apply_subviolation_mapping?target_col=${encodeURIComponent(targetCol)}`);
+      if (html) {
+        document.getElementById("output").innerHTML = html;
+        initDataTable();
+      }
+    }
+
+    async function uploadBarangayCSV() {
+      const file = document.getElementById("barangayInput").files[0];
+      const targetColumn = document.getElementById("barangayTarget").value.trim();
+      if (!file) return alert("Please select a Barangay CSV file.");
+      if (!targetColumn) return alert("Please enter a target column name.");
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("targetColumn", targetColumn);
+
+      const html = await fetchWithLoader("/upload_barangay_csv", { method: "POST", body: formData });
+      if (html) {
+        document.getElementById("barangayPreview").innerHTML = html;
+        document.getElementById("barangaySidebar").classList.add("open");
+        document.body.classList.add("sidebar-open");
+        initDataTable();
+      }
+    }
+
+    async function applyBarangayMapping() {
+      const targetColumn = document.getElementById("barangayTarget").value.trim();
+      if (!targetColumn) return alert("Please enter a target column name.");
+
+      const formData = new FormData();
+      formData.append("targetColumn", targetColumn);
+
+      const html = await fetchWithLoader("/apply_barangay_mapping", { method: "POST", body: formData });
+      if (html) {
+        document.getElementById("output").innerHTML = html;
+        initDataTable();
+      }
+    }
+
+
+    async function showUnalignedBarangays() {
+      const html = await fetchWithLoader('/show_unaligned_barangays');
+      if (html) {
+        document.getElementById('unalignedTable').innerHTML = html;
+        document.getElementById('unalignedModal').style.display = 'block';
+        initDataTable(); // optional if you want DataTable functionality
+      }
+    }
+
+    function closeUnalignedModal() {
+      document.getElementById('unalignedModal').style.display = 'none';
+    }
+
+    function exportUnaligned() {
+      const targetColumn = document.getElementById("barangayTarget").value.trim();
+      if (!targetColumn) return alert("Please enter a target column name.");
+
+      window.location.href = `/export_unaligned_barangays?targetColumn=${encodeURIComponent(targetColumn)}`;
+    }
+
+    function closeUnalignedModal() {
+      document.getElementById('unalignedModal').style.display = 'none';
+    }
+
+    async function reloadData(page = 1) {
+      showLoader();
+      try {
+        // If your backend can take a page parameter, send it
+        const res = await fetch(`/reload_data?page=${page}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const html = await res.text();
+
+        document.getElementById('output').innerHTML = html;
+
+        // Initialize or re-initialize DataTable
+        const table = $("#output table");
+        if ($.fn.DataTable.isDataTable(table)) {
+          table.DataTable().destroy();
+        }
+        table.DataTable({
+          pageLength: 20,
+          lengthMenu: [10, 20, 50, 100],
+          // optional: preserve paging
+          displayStart: (page - 1) * 20
+        });
+      } catch (err) {
+        console.error(err);
+        alert("Failed to reload data: " + err);
+      } finally {
+        hideLoader();
+      }
+    }
+
+  </script>
+
+  <script>
+    // Ask for confirmation before leaving the page
+    window.addEventListener("beforeunload", function (e) {
+      // Custom message is ignored by most modern browsers, but dialog still shows
+      const confirmationMessage = "You have unsaved changes. Are you sure you want to leave?";
+      e.preventDefault(); // Standard
+      e.returnValue = confirmationMessage; // Legacy for some browsers
+      return confirmationMessage;
+    });
+  </script>
+
+</body>
+
+</html>
+</html>
