@@ -776,7 +776,7 @@
       <main class="content-wrap">
 
         <!-- LOAD DATA CARD (top) -->
-      
+
         <div class="row g-3">
           <div class="col-12 col-xl-8">
             <div class="card-pro">
@@ -839,8 +839,20 @@
                   </button>
                 </div>
               </div>
-              <div style="height:220px; position:relative;">
-                <canvas id="customChart" style="width:100%; height:100%;"></canvas>
+              <div class="card-pro">
+                <div class="tool-group-label">Alias Generator</div>
+
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                  <input type="text" id="aliasPrefix" class="form-control mini-input" placeholder="Prefix (e.g. KSU-)">
+                  <input type="text" id="aliasStart" class="form-control mini-input"
+                    placeholder="Start number (e.g. 00001)">
+                  <input type="text" id="aliasColumn" class="form-control mini-input"
+                    placeholder="Column name (e.g. alias)">
+                </div>
+
+                <button class="tool-chip success" onclick="generateAlias()">
+                  <i class="bi bi-list-ol"></i> Generate Aliases
+                </button>
               </div>
               <div class="card-header-pro">
                 <div class="card-header-main">
@@ -1128,6 +1140,33 @@
         hideLoader();
       }
     }
+
+    async function generateAlias() {
+      const prefix = document.getElementById('aliasPrefix').value.trim();
+      const start = document.getElementById('aliasStart').value.trim();
+      const column = document.getElementById('aliasColumn').value.trim();
+
+      if (!prefix || !start || !column) {
+        alert("Please fill in all alias fields.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("prefix", prefix);
+      formData.append("start", start);
+      formData.append("column", column);
+
+      const data = await fetchWithLoader('/generate_alias', {
+        method: "POST",
+        body: formData
+      });
+
+      if (data) {
+        document.getElementById("output").innerHTML = data;
+        initDataTable();
+      }
+    }
+
 
     // --- CSV upload (main Load Data card) ---
     async function uploadCSV() {

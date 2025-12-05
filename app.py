@@ -487,6 +487,46 @@ def data_profile():
     return html_output
 
 
+@app.route('/generate_alias', methods=['POST'])
+def generate_alias():
+    global uploaded_df
+    if uploaded_df.empty:
+        return "No data loaded.", 400
+
+    prefix = request.form.get("prefix", "").strip()
+    start_num = request.form.get("start", "").strip()
+    target_col = request.form.get("column", "").strip()
+
+    if not prefix or not start_num or not target_col:
+        return "Missing inputs.", 400
+
+    if target_col not in uploaded_df.columns:
+        # auto-create column
+        uploaded_df[target_col] = ""
+
+    # Get total rows
+    total = len(uploaded_df)
+
+    # Compute digit length automatically
+    digit_len = len(start_num)
+
+    # Convert start to int
+    try:
+        start_int = int(start_num)
+    except:
+        return "Invalid starting number format.", 400
+
+    save_history()
+
+    # Generate aliases
+    aliases = []
+    for i in range(total):
+        number_str = str(start_int + i).zfill(digit_len)
+        aliases.append(f"{prefix}{number_str}")
+
+    uploaded_df[target_col] = aliases
+
+    return "<p><b>Alias generated successfully!</b></p>" + uploaded_df.to_html()
 
 
 @app.route('/find')
@@ -695,7 +735,7 @@ def apply_barangay_template():
 
     # Get target column from request
     target_column = request.form.get('targetColumn')
-    if not target_column:
+    if not target_column:   
         return "Target column not provided.", 400
     if target_column not in uploaded_df.columns:
         return f"'{target_column}' column not found in main CSV.", 400
