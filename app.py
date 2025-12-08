@@ -25,6 +25,25 @@ def save_history():
     global uploaded_df, history_stack
     history_stack.append(uploaded_df.copy())
 
+def dataframe_to_html_with_id(df):
+    html = "<table class='dataframe table table-striped'>"
+    
+    # HEADER
+    html += "<thead><tr>"
+    for col in df.columns:
+        html += f"<th>{col}</th>"
+    html += "</tr></thead><tbody>"
+
+    # ROWS WITH data-id
+    for i, row in df.iterrows():
+        html += f"<tr data-id='{i}'>"
+        for val in row:
+            html += f"<td>{val}</td>"
+        html += "</tr>"
+
+    html += "</tbody></table>"
+    return html
+
 @app.route('/export_csv')
 def export_csv():
     global uploaded_df
@@ -48,8 +67,7 @@ def export_excel():
         return "No data to export.", 400
 
     excel_buffer = BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-        uploaded_df.to_excel(writer, index=False, sheet_name='Cleaned Data')
+    uploaded_df.to_excel(excel_buffer, index=False, sheet_name='Cleaned Data')
     excel_buffer.seek(0)
 
     return send_file(
@@ -69,25 +87,55 @@ def load_csv():
     file = request.files.get('file')
     if file is None:
         return "No file uploaded.", 400
+
+    # Validate file extension (only CSV allowed)
+    filename = file.filename.lower()
+    if not filename.endswith(".csv"):
+        return "<p style='color:red; font-weight:bold;'>❌ Invalid file type. Only CSV files are allowed.</p>", 400
     raw_data = file.read()
     result = chardet.detect(raw_data)
     encoding = result['encoding']
     file.seek(0)
     uploaded_df = pd.read_csv(file, encoding=encoding)
     history_stack.clear()  # Clear history when loading new data
-    return uploaded_df.to_html()
+    return dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/remove_special_chars')
 def remove_special_chars():
     global uploaded_df
     save_history()
+    
     def clean_special_chars(val):
         if isinstance(val, str):
-            return re.sub(r"[^A-Za-z0-9\s\-',&]", '', val)
+            val_stripped = val.strip()
+            
+            # Check if it's a date/time pattern
+            date_pattern = r'^\d{1,4}[/-]\d{1,2}[/-]\d{1,4}$'
+            time_pattern = r'^\d{1,2}:\d{2}(:\d{2})?\s*(AM|PM|am|pm)?$'
+            datetime_pattern = r'^\d{1,4}[/-]\d{1,2}[/-]\d{1,4}\s+\d{1,2}:\d{2}(:\d{2})?\s*(AM|PM|am|pm)?$'
+            
+            if re.match(date_pattern, val_stripped) or re.match(time_pattern, val_stripped) or re.match(datetime_pattern, val_stripped):
+                return re.sub(r"[^0-9\s/:\-AMPampm]", '', val)
+            
+            # Check email patterns
+            email_pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+            # More flexible pattern for malformed emails (including those without dots)
+            loose_email_pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$'
+            
+            if re.match(email_pattern, val_stripped):
+                cleaned = re.sub(r"[^A-Za-z0-9@._%+\-]", '', val)
+                return cleaned
+            elif re.match(loose_email_pattern, val_stripped):
+                # Loose email format - fix common issues
+                cleaned = re.sub(r"@+", "@", val)  # Replace multiple @ with single @
+                cleaned = re.sub(r"[^A-Za-z0-9@._%+\-]", '', cleaned)  # Remove other special chars
+                return cleaned
+            else:
+                return re.sub(r"[^A-Za-z0-9\s\-',&@:\/]", '', val)
         return val
 
     uploaded_df = uploaded_df.applymap(clean_special_chars)
-    return "<p><b>Removed special characters (except - ' ,) from text columns.</b></p>" + uploaded_df.to_html()
+    return "<p><b>Removed special characters (preserved valid emails, dates, times, kept - ' , @ : /) from text columns.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/load_sample')
 def load_sample():
@@ -138,7 +186,7 @@ def load_sample():
         ]
     })
     history_stack.clear()
-    return uploaded_df.to_html()
+    return dataframe_to_html_with_id(uploaded_df)
 
 
 @app.route('/remove_duplicates_by_column')
@@ -156,14 +204,14 @@ def remove_duplicates_by_column():
     uploaded_df = uploaded_df.drop_duplicates(subset=[column])
     after = len(uploaded_df)
     affected = before - after
-    return f"<p><b>Removed {affected} duplicate rows based on column '{column}'.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Removed {affected} duplicate rows based on column '{column}'.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/standardize_text')
 def standardize_text():
     global uploaded_df
     save_history()
     uploaded_df = uploaded_df.applymap(lambda x: x.title() if isinstance(x, str) else x)
-    return uploaded_df.to_html()
+    return dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/missing_values')
 def missing_values():
@@ -179,7 +227,7 @@ def drop_missing():
     uploaded_df = uploaded_df.dropna()
     after = len(uploaded_df)
     affected = before - after
-    return f"<p><b>Dropped {affected} rows with missing values.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Dropped {affected} rows with missing values.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/fill_missing')
 def fill_missing():
@@ -189,7 +237,7 @@ def fill_missing():
     uploaded_df = uploaded_df.fillna(0)
     after_missing = uploaded_df.isnull().sum().sum()
     filled = before_missing - after_missing
-    return f"<p><b>Filled {filled} missing cells with 0.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Filled {filled} missing cells with 0.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/sort_values')
 def sort_values():
@@ -201,7 +249,7 @@ def sort_values():
 
     save_history()
     uploaded_df.sort_values(by=column, inplace=True)
-    return f"<p><b>Sorted by '{html.escape(str(column))}'.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Sorted by '{html.escape(str(column))}'.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/sort_interface')
 def sort_interface():
@@ -224,7 +272,7 @@ def sort_interface():
             <button type="submit">Sort</button>
         </form>
         <br>
-        {uploaded_df.to_html()}
+        {dataframe_to_html_with_id(uploaded_df)}
     '''
 
 @app.route('/bar_chart')
@@ -264,7 +312,7 @@ def change_dtype():
     except Exception as e:
         return f"Conversion failed: {e}", 400
 
-    return f"<p><b>Changed '{column}' to {dtype}.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Changed '{column}' to {dtype}.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/replace_values')
 def replace_values_non_sensitive():
@@ -282,16 +330,24 @@ def replace_values_non_sensitive():
     def replace_substring(val):
         if isinstance(val, str):
             return re.sub(re.escape(to_replace), new_value, val, flags=re.IGNORECASE)
+        # Handle numeric values - convert to string for comparison
+        val_str = str(val)
+        if re.search(re.escape(to_replace), val_str, flags=re.IGNORECASE):
+            return new_value
         return val
 
     # Count affected rows
     before_count = uploaded_df[column].apply(
         lambda x: isinstance(x, str) and re.search(re.escape(to_replace), x, flags=re.IGNORECASE) is not None
     ).sum()
+    # Add numeric matches
+    before_count += uploaded_df[column].apply(
+        lambda x: not isinstance(x, str) and re.search(re.escape(to_replace), str(x), flags=re.IGNORECASE) is not None
+    ).sum()
 
     uploaded_df[column] = uploaded_df[column].apply(replace_substring)
 
-    return f"<p><b>Non-sensitive replace (substring): '{to_replace}' → '{new_value}' in '{column}'. Rows affected: {before_count}</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Non-sensitive replace (substring): '{to_replace}' → '{new_value}' in '{column}'. Rows affected: {before_count}</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 
 @app.route('/replace_values_sensitive')
@@ -311,7 +367,8 @@ def replace_values_sensitive():
 
     def normalize(text):
         if not isinstance(text, str):
-            return ""
+            # Convert numeric values to string for normalization
+            text = str(text)
         return re.sub(r'\s+', ' ', text).strip().lower()
 
     # Count affected rows
@@ -322,7 +379,7 @@ def replace_values_sensitive():
         lambda x: new_value if normalize(x) == normalize(to_replace) else x
     )
 
-    return f"<p><b>Sensitive replace (full match): '{to_replace}' → '{new_value}' in '{column}'. Rows affected: {before_count}</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Sensitive replace (full match): '{to_replace}' → '{new_value}' in '{column}'. Rows affected: {before_count}</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 
 @app.route('/rename_column')
@@ -336,14 +393,14 @@ def rename_column():
 
     save_history()
     uploaded_df.rename(columns={old_name: new_name}, inplace=True)
-    return f"<p><b>Renamed '{old_name}' to '{new_name}'.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Renamed '{old_name}' to '{new_name}'.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/undo_replace')
 def undo_replace():
     global uploaded_df, history_stack
     if history_stack:
         uploaded_df = history_stack.pop()
-        return "<p><b>Undo successful.</b></p>" + uploaded_df.to_html()
+        return "<p><b>Undo successful.</b></p>" + dataframe_to_html_with_id(uploaded_df)
     else:
         return "Nothing to undo.", 400
 
@@ -357,7 +414,7 @@ def drop_column():
 
     save_history()
     uploaded_df.drop(columns=[column], inplace=True)
-    return f"<p><b>Dropped column '{column}'.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Dropped column '{column}'.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/drop_value')
 def drop_value():
@@ -386,7 +443,7 @@ def drop_value():
     else:
         return "Invalid action", 400
 
-    return f"<p><b>{message}</b></p>" + uploaded_df.to_html()
+    return f"<p><b>{message}</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 
 @app.route('/data_profile')
@@ -526,7 +583,7 @@ def generate_alias():
 
     uploaded_df[target_col] = aliases
 
-    return "<p><b>Alias generated successfully!</b></p>" + uploaded_df.to_html()
+    return "<p><b>Alias generated successfully!</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 
 @app.route('/find')
@@ -637,7 +694,7 @@ def magic_clean():
     uploaded_df = uploaded_df.apply(lambda col: col.apply(lambda val: clean_value(val, col.name)))
     uploaded_df.drop_duplicates(inplace=True)
 
-    return "<p><b>✨ Magic Clean applied!</b></p>" + uploaded_df.to_html()
+    return "<p><b>✨ Magic Clean applied!</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/generate_chart_data')
 def generate_chart_data():
@@ -648,17 +705,32 @@ def generate_chart_data():
     if uploaded_df.empty or x_col not in uploaded_df.columns or y_col not in uploaded_df.columns:
         return jsonify({'labels': [], 'values': []})
 
-    # Drop missing or non-numeric
+    # Drop missing values
     df = uploaded_df[[x_col, y_col]].dropna()
+    
+    # Check if Y column is numeric
     try:
-        df[y_col] = pd.to_numeric(df[y_col], errors='coerce')
-        df = df.dropna()
-    except:
-        pass
-
-    grouped = df.groupby(x_col)[y_col].sum().reset_index()
-    labels = grouped[x_col].astype(str).tolist()
-    values = grouped[y_col].tolist()
+        y_numeric = pd.to_numeric(df[y_col], errors='coerce')
+        if y_numeric.notna().any():
+            # Y column has numeric data, use aggregation
+            df[y_col] = y_numeric
+            df = df.dropna()
+            grouped = df.groupby(x_col)[y_col].sum().reset_index()
+            labels = grouped[x_col].astype(str).tolist()
+            values = grouped[y_col].tolist()
+        else:
+            # Y column is categorical, use value counts
+            grouped = df.groupby(x_col).size().reset_index(name='count')
+            labels = grouped[x_col].astype(str).tolist()
+            values = grouped['count'].tolist()
+    except Exception as e:
+        # Fallback to simple value counts
+        try:
+            grouped = df.groupby(x_col).size().reset_index(name='count')
+            labels = grouped[x_col].astype(str).tolist()
+            values = grouped['count'].tolist()
+        except:
+            return jsonify({'labels': [], 'values': []})
 
     return jsonify({'labels': labels, 'values': values})
 
@@ -698,7 +770,7 @@ def apply_subviolation_mapping():
         dict(zip(mapping_df['id'], mapping_df['name']))
     )
 
-    return f"<p><b>Applied mapping on column <code>{target_col}</code>.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Applied mapping on column <code>{target_col}</code>.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/upload_barangay_csv', methods=['POST'])
 def upload_barangay_csv():
@@ -762,7 +834,7 @@ def apply_barangay_template():
     save_history()
     uploaded_df[target_column] = uploaded_df[target_column].apply(map_to_barangay)
 
-    return f"<p><b>Mapped '{target_column}' to Barangay (template-aware) for {len(uploaded_df)} rows.</b></p>" + uploaded_df.to_html()
+    return f"<p><b>Mapped '{target_column}' to Barangay (template-aware) for {len(uploaded_df)} rows.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/show_unaligned_barangays')
 def show_unaligned_barangays():
@@ -831,6 +903,55 @@ def export_and_drop_unaligned_barangays():
         download_name='unaligned_barangays.csv'
     )
 
+
+
+@app.route('/reload_data')
+def reload_data():
+    global uploaded_df
+
+    if uploaded_df.empty:
+        return "No data to reload.", 400
+
+    print(f"Reloading FULL dataset, total rows: {len(uploaded_df)}")
+
+    # ✅ RETURN FULL DATASET — NOT SLICED
+    return dataframe_to_html_with_id(uploaded_df)
+
+
+
+
+@app.route('/update_cell', methods=['POST'])
+def update_cell():
+    global uploaded_df
+    try:
+        row_id = int(request.form.get('row_id'))  # This is now the actual DataFrame index
+        column_name = request.form.get('column_name')
+        new_value = request.form.get('new_value')
+        original_value = request.form.get('original_value')
+        
+        if column_name not in uploaded_df.columns:
+            return f"Column '{column_name}' not found", 400
+        
+        if row_id < 0 or row_id >= len(uploaded_df):
+            return "Invalid row id", 400
+        
+        # Debug: Print the update info
+        print(f"Updating cell: Row {row_id}, Column '{column_name}', From '{original_value}' To '{new_value}'")
+        print(f"Current value before update: {uploaded_df.at[row_id, column_name]}")
+        
+        save_history()
+        
+        # Update the cell value
+        uploaded_df.at[row_id, column_name] = new_value
+        
+        # Debug: Verify the update
+        print(f"Current value after update: {uploaded_df.at[row_id, column_name]}")
+        
+        return "Cell updated successfully", 200
+        
+    except Exception as e:
+        print(f"Error updating cell: {str(e)}")
+        return f"Error updating cell: {str(e)}", 500
 
 
 if __name__ == "__main__":

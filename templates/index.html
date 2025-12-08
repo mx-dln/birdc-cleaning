@@ -741,10 +741,17 @@
             <i class="bi bi-upload"></i><span>Import Data</span>
           </a>
         </li>
+
+        <!-- TUTORIAL BUTTON -->
+        <li>
+          <a href="#" class="sidebar-link" onclick="toggleTutorialSidebar()">
+            <i class="bi bi-question-circle"></i><span>Tutorial</span>
+          </a>
+        </li>
       </ul>
 
       <div class="sidebar-footer">
-        <span>Session not saved automatically.</span>
+        <span>App Version: 5.5.10</span>
         <span>Export CSV before closing.</span>
       </div>
     </aside>
@@ -763,7 +770,7 @@
           <span class="pill-badge">
             <i class="bi bi-cpu"></i> AI-assisted cleaning
           </span>
-          <button class="btn-ghost" onclick="window.location.href='/export_csv'">
+          <button class="btn-ghost" onclick="exportCSV()">
             <i class="bi bi-download"></i> Export CSV
           </button>
           <div class="user-avatar">
@@ -785,9 +792,14 @@
                   <div class="card-title-pro">Data Preview</div>
                   <div class="card-subtitle-pro">This reflects the current in-memory dataset after all operations.</div>
                 </div>
-                <button class="btn-ghost" onclick="reloadData()">
-                  <i class="bi bi-arrow-clockwise"></i> Refresh view
-                </button>
+                <div class="d-flex gap-2">
+                  <button class="btn-ghost" onclick="loadSample()">
+                    <i class="bi bi-database"></i> Load sample
+                  </button>
+                  <button class="btn-ghost" onclick="reloadData()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh view
+                  </button>
+                </div>
               </div>
               <div id="output"></div>
             </div>
@@ -807,9 +819,6 @@
                 <div class="tool-chip-row">
                   <button class="tool-chip success" onclick="callAction('standardize_text')">
                     <i class="bi bi-type"></i> Standardize text
-                  </button>
-                  <button class="tool-chip danger" onclick="removeDuplicatesSelected()">
-                    <i class="bi bi-layers"></i> Remove duplicates
                   </button>
                   <button class="tool-chip" onclick="callAction('remove_special_chars')">
                     <i class="bi bi-slash-circle"></i> Remove special chars
@@ -975,7 +984,7 @@
             <div class="col-12 col-lg-6">
               <div class="tool-group-label">Subviolation Mapping</div>
               <div class="d-flex flex-wrap gap-2 mb-2">
-                <input type="file" id="mappingInput" class="form-control form-control-sm" />
+                <input type="file" id="mappingInput" class="form-control form-control-sm" accept=".csv" />
                 <input type="text" id="mapTargetColumn" class="form-control mini-input"
                   placeholder="Target column (e.g. subviolation)" />
               </div>
@@ -996,7 +1005,7 @@
             <div class="col-12 col-lg-6">
               <div class="tool-group-label">Barangay Mapping</div>
               <div class="d-flex flex-wrap gap-2 mb-2">
-                <input type="file" id="barangayInput" class="form-control form-control-sm" />
+                <input type="file" id="barangayInput" class="form-control form-control-sm" accept=".csv" />
                 <input type="text" id="barangayTarget" class="form-control mini-input"
                   placeholder="Target column name" />
               </div>
@@ -1056,6 +1065,57 @@
     </div>
   </div>
 
+  <!-- TUTORIAL SIDEBAR -->
+  <div id="tutorialSidebar" class="mapping-sidebar">
+    <div class="sidebar-header">
+      <span><strong>Function Tutorial</strong></span>
+      <button onclick="toggleTutorialSidebar()">×</button>
+    </div>
+
+    <div class="p-3">
+      <!-- Tutorial Navigation -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <button class="btn-ghost" onclick="previousTutorial()" id="prevBtn">
+          <i class="bi bi-arrow-left"></i> Previous
+        </button>
+        <span class="badge bg-primary" id="tutorialCounter">1 / 25</span>
+        <button class="btn-ghost" onclick="nextTutorial()" id="nextBtn">
+          Next <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+
+      <!-- Tutorial Content -->
+      <div id="tutorialContent">
+        <div class="tutorial-item">
+          <h5 class="text-primary mb-3">
+            <i class="bi bi-upload"></i> Load CSV Data
+          </h5>
+          <div class="mb-3">
+            <strong>Route:</strong> <code>/load_csv</code> (POST)
+          </div>
+          <div class="mb-3">
+            <strong>Description:</strong> Upload and load a CSV file into the application for data cleaning operations.
+          </div>
+          <div class="mb-3">
+            <strong>Usage:</strong> Use the Import Data sidebar or drag & drop a CSV file. The system automatically
+            detects file encoding.
+          </div>
+          <div class="mb-3">
+            <strong>Features:</strong>
+            <ul class="list-unstyled ms-3">
+              <li>• Automatic encoding detection</li>
+              <li>• CSV file validation</li>
+              <li>• Clears history when loading new data</li>
+            </ul>
+          </div>
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Only CSV files are supported. The file must have proper headers.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- IMPORT SIDEBAR (separate sibling) -->
   <div id="importSidebar" class="mapping-sidebar">
     <div class="sidebar-header">
@@ -1072,7 +1132,7 @@
         <div class="dropzone-title">Drop a CSV file here or click to browse</div>
         <div class="dropzone-subtext">Only CSV format is supported.</div>
 
-        <input type="file" id="importFileInput" />
+        <input type="file" id="importFileInput" accept=".csv" />
         <div class="file-name" id="importFileNameDisplay"></div>
 
         <div class="mt-3 d-flex justify-content-center gap-2">
@@ -1086,6 +1146,17 @@
             <div class="sparkle-container"></div>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart Modal -->
+  <div id="chartModal" class="modal">
+    <div class="modal-content" style="width: 90%; max-width: 800px;">
+      <span onclick="closeChartModal()" class="close-btn">&times;</span>
+      <h3>Chart Visualization</h3>
+      <div class="mt-3">
+        <canvas id="customChart" width="400" height="300"></canvas>
       </div>
     </div>
   </div>
@@ -1112,6 +1183,13 @@
         lengthMenu: [10, 20, 50, 100],
         responsive: true
       });
+
+      // Make output table editable after DataTable initialization
+      setTimeout(() => {
+        if ($("#output table").length) {
+          makeTableEditable();
+        }
+      }, 100);
     }
 
     function showLoader() {
@@ -1267,6 +1345,10 @@
       }
     }
 
+    function isCSV(file) {
+      return file && file.name.toLowerCase().endsWith(".csv");
+    }
+
     function closeModal() {
       document.getElementById('dataProfileModal').style.display = 'none';
     }
@@ -1336,10 +1418,31 @@
       const chartType = document.getElementById("chartType").value;
       const xColumn = document.getElementById("xAxisColumn").value;
       const yColumn = document.getElementById("yAxisColumn").value;
+
+      if (!xColumn || !yColumn) {
+        alert("Please enter both X and Y axis column names.");
+        return;
+      }
+
       try {
         showLoader();
         const res = await fetch(`/generate_chart_data?x=${encodeURIComponent(xColumn)}&y=${encodeURIComponent(yColumn)}`);
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await res.text();
+          throw new Error("Server returned non-JSON response. Check column names and data.");
+        }
+
         const data = await res.json();
+
+        // Show modal and create chart
+        document.getElementById("chartModal").style.display = "block";
+
         const ctx = document.getElementById("customChart").getContext("2d");
         if (chartInstance) chartInstance.destroy();
         chartInstance = new Chart(ctx, {
@@ -1350,19 +1453,169 @@
               label: `${yColumn} vs ${xColumn}`,
               data: data.values,
               borderWidth: 2,
-              fill: chartType === 'line' ? false : true
+              fill: chartType === 'line' ? false : true,
+              backgroundColor: chartType === 'pie' || chartType === 'doughnut' ?
+                ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] :
+                'rgba(54, 162, 235, 0.2)',
+              borderColor: chartType === 'pie' || chartType === 'doughnut' ?
+                ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] :
+                'rgba(54, 162, 235, 1)'
             }]
           },
-          options: { responsive: true, maintainAspectRatio: false }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: chartType === 'pie' || chartType === 'doughnut'
+              }
+            },
+            scales: chartType === 'bar' || chartType === 'line' ? {
+              y: {
+                beginAtZero: true
+              }
+            } : {}
+          }
         });
       } catch (err) {
-        alert("Chart load failed: " + err);
+        alert("Chart load failed: " + err.message);
+        console.error("Chart error:", err);
       } finally {
         hideLoader();
       }
     }
 
-    // --- Sparkles ---
+    function closeChartModal() {
+      document.getElementById("chartModal").style.display = "none";
+      if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+    }
+
+    // --- Editable Table Functionality ---
+    let editableTable = null;
+
+    function makeTableEditable() {
+      // ✅ Kill previous bindings to prevent stacking
+      $(document).off('dblclick.editCell');
+
+      // ✅ Works with DataTables, responsive rows, pagination, sorting
+      $(document).on('dblclick.editCell', '#output table td', function () {
+        const cell = $(this);
+
+        const tableEl = $('#output table');
+        const dataTable = tableEl.DataTable();
+
+        // If already editing, block re-entry
+        if (cell.find('input').length) return;
+
+        const originalValue = cell.text().trim();
+
+        // ✅ Get real column index safely
+        const cellIndex = dataTable.cell(cell).index();
+        if (!cellIndex) return;
+
+        const colIndex = cellIndex.column;
+        const columnName = tableEl.find('thead th').eq(colIndex).text().trim();
+
+        if (!columnName || columnName.toLowerCase() === 'index') return;
+
+        // ✅ Get real row id from HTML (your Flask data-id)
+        const rowId = cell.closest('tr').attr('data-id');
+        if (!rowId) {
+          console.error("❌ Missing data-id on row");
+          return;
+        }
+
+        // ✅ Inject input
+        const input = $('<input type="text">').val(originalValue).css({
+          width: '100%',
+          border: 'none',
+          padding: '4px',
+          fontSize: 'inherit'
+        });
+
+        cell.html(input);
+        input.focus().select();
+
+        function saveEdit() {
+          const newValue = input.val().trim();
+          cell.text(newValue);
+
+          if (newValue !== originalValue) {
+            updateCell(rowId, colIndex, columnName, newValue, originalValue);
+          }
+        }
+
+        input.on('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEdit();
+          } else if (e.key === 'Escape') {
+            cell.text(originalValue);
+          }
+        });
+
+        input.on('blur', saveEdit);
+      });
+
+      // ✅ Visual UX indicators
+      $('#output table').find('td').css({
+        cursor: 'pointer',
+        position: 'relative'
+      });
+    }
+
+
+    async function updateCell(rowId, colIndex, columnName, newValue, originalValue) {
+      try {
+        showLoader();
+
+        const formData = new FormData();
+        formData.append('row_id', rowId);          // ✅ REAL DB ID
+        formData.append('column_name', columnName);
+        formData.append('new_value', newValue);
+        formData.append('original_value', originalValue);
+
+        const response = await fetch('/update_cell', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        await response.text();
+        console.log('✅ Correct row updated in database');
+
+        // ✅ Highlight the exact edited cell safely
+        const table = $('#output table').DataTable();
+        const cellNode = table
+          .cell({ row: $(`tr[data-id="${rowId}"]`), column: colIndex })
+          .node();
+
+        $(cellNode).css('background-color', '#d4edda');
+        setTimeout(() => $(cellNode).css('background-color', ''), 1000);
+
+      } catch (error) {
+        console.error('❌ Error updating cell:', error);
+        alert('Update failed. Reverting value.');
+
+        const table = $('#output table').DataTable();
+        const cellNode = table
+          .cell({ row: $(`tr[data-id="${rowId}"]`), column: colIndex })
+          .node();
+
+        $(cellNode).text(originalValue);
+
+      } finally {
+        hideLoader();
+      }
+    }
+
+
     const sparkleContainer = document.querySelector('.sparkle-container');
     const sparkleChars = ['✨'];
     function createSparkle() {
@@ -1395,6 +1648,7 @@
       const fileInput = document.getElementById("mappingInput");
       const file = fileInput.files[0];
       if (!file) return alert("Please select a mapping CSV file.");
+      if (!isCSV(file)) return alert("❌ Only CSV files are allowed for mapping.");
       const formData = new FormData();
       formData.append("file", file);
 
@@ -1421,6 +1675,7 @@
       const file = document.getElementById("barangayInput").files[0];
       const targetColumn = document.getElementById("barangayTarget").value.trim();
       if (!file) return alert("Please select a Barangay CSV file.");
+      if (!isCSV(file)) return alert("❌ Only CSV files are allowed.");
       if (!targetColumn) return alert("Please enter a target column name.");
 
       const formData = new FormData();
@@ -1477,16 +1732,7 @@
         const html = await res.text();
 
         document.getElementById('output').innerHTML = html;
-
-        const table = $("#output table");
-        if ($.fn.DataTable.isDataTable(table)) {
-          table.DataTable().destroy();
-        }
-        table.DataTable({
-          pageLength: 20,
-          lengthMenu: [10, 20, 50, 100],
-          displayStart: (page - 1) * 20
-        });
+        initDataTable();
       } catch (err) {
         console.error(err);
         alert("Failed to reload data: " + err);
@@ -1495,7 +1741,27 @@
       }
     }
 
-    // Ask for confirmation before leaving the page
+    // Export CSV function - downloads without navigation
+    function exportCSV() {
+      const link = document.createElement('a');
+      link.href = '/export_csv';
+      link.download = ''; // Let browser determine filename from server
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Export Excel function - downloads without navigation
+    function exportExcel() {
+      const link = document.createElement('a');
+      link.href = '/export_excel';
+      link.download = ''; // Let browser determine filename from server
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Ask for confirmation before leaving the page (only when actually leaving)
     window.addEventListener("beforeunload", function (e) {
       const confirmationMessage = "You have unsaved changes. Make sure to export your cleaned CSV before leaving.";
       e.preventDefault();
@@ -1511,8 +1777,8 @@
 
     async function sidebarUploadCSV() {
       const fileInput = document.getElementById('importFileInput');
-      if (!fileInput.files.length) {
-        alert("Please select a CSV file.");
+      if (!fileInput.files.length || !isCSV(fileInput.files[0])) {
+        alert("❌ Only CSV files are allowed.");
         return;
       }
 
@@ -1567,6 +1833,329 @@
             "Selected file: " + importFile.files[0].name;
         }
       });
+    }
+
+    // --- TUTORIAL FUNCTIONS ---
+    const tutorials = [
+      {
+        title: "Load CSV Data",
+        icon: "bi-upload",
+        route: "/load_csv (POST)",
+        description: "Upload and load a CSV file into the application for data cleaning operations.",
+        usage: "Use the Import Data sidebar or drag & drop a CSV file. The system automatically detects file encoding.",
+        features: ["Automatic encoding detection", "CSV file validation", "Clears history when loading new data"],
+        note: "Only CSV files are supported. The file must have proper headers."
+      },
+      {
+        title: "Load Sample Data",
+        icon: "bi-database",
+        route: "/load_sample",
+        description: "Load a pre-configured sample dataset with various data quality issues for testing.",
+        usage: "Click the 'Load Sample' button to populate the application with test data containing common issues.",
+        features: ["30 sample records", "Various data types", "Common quality issues", "Missing values", "Duplicates"],
+        note: "Perfect for testing cleaning functions without uploading your own data."
+      },
+      {
+        title: "Remove Special Characters",
+        icon: "bi-slash-circle",
+        route: "/remove_special_chars",
+        description: "Remove special characters from text columns while preserving basic punctuation.",
+        usage: "Click the 'Remove special chars' button to clean text data.",
+        features: ["Keeps letters, numbers, spaces", "Preserves - ' , characters", "Applied to all columns"],
+        note: "Useful for cleaning data imported from systems that add unwanted symbols."
+      },
+      {
+        title: "Remove Duplicates by Column",
+        icon: "bi-layers",
+        route: "/remove_duplicates_by_column",
+        description: "Remove duplicate rows based on a specific column value.",
+        usage: "Enter a column name and click 'Remove duplicates' to eliminate duplicate rows.",
+        features: ["Target specific column", "Preserves first occurrence", "Shows affected row count"],
+        note: "Make sure to specify the correct column name exactly as it appears in your data."
+      },
+      {
+        title: "Standardize Text",
+        icon: "bi-type",
+        route: "/standardize_text",
+        description: "Convert text columns to title case (first letter capitalized, rest lowercase).",
+        usage: "Click 'Standardize text' to apply title case formatting to all text columns.",
+        features: ["Title case conversion", "Applied to all string columns", "Preserves non-text data"],
+        note: "Perfect for standardizing names, addresses, and other text fields."
+      },
+      {
+        title: "Drop Missing Values",
+        icon: "bi-dash-circle",
+        route: "/drop_missing",
+        description: "Remove rows that contain any missing (null/NaN) values.",
+        usage: "Click 'Drop missing rows' to remove all rows with empty cells.",
+        features: ["Removes rows with any null values", "Shows count of removed rows", "Creates history backup"],
+        note: "Be careful - this removes entire rows. Consider filling missing values first if needed."
+      },
+      {
+        title: "Fill Missing Values",
+        icon: "bi-plus-circle",
+        route: "/fill_missing",
+        description: "Fill all missing (null/NaN) values with zeros.",
+        usage: "Click 'Fill missing with 0' to replace empty cells with zeros.",
+        features: ["Fills null values with 0", "Applied to all columns", "Shows count of filled cells"],
+        note: "Useful for numeric columns where missing values should be treated as zero."
+      },
+      {
+        title: "Sort Data",
+        icon: "bi-sort-down",
+        route: "/sort_values",
+        description: "Sort the dataset by a specific column in ascending order.",
+        usage: "Enter a column name and click 'Sort' to reorder your data.",
+        features: ["Ascending order", "Applies to entire dataset", "Creates history backup"],
+        note: "The column name must match exactly. Case-sensitive."
+      },
+      {
+        title: "Sort Interface",
+        icon: "bi-list-ul",
+        route: "/sort_interface",
+        description: "Display a dropdown interface to select columns for sorting.",
+        usage: "Access through the sorting interface to see available columns and sort.",
+        features: ["Dropdown column selection", "Interactive sorting", "Shows current data"],
+        note: "Provides a user-friendly way to sort without typing column names."
+      },
+      {
+        title: "Generate Bar Chart",
+        icon: "bi-bar-chart",
+        route: "/bar_chart",
+        description: "Generate a bar chart showing value counts for the first column.",
+        usage: "Click to create a bar chart visualization of your first column's data distribution.",
+        features: ["Automatic value counting", "PNG image output", "Saved to static folder"],
+        note: "Chart shows frequency distribution of values in the first column."
+      },
+      {
+        title: "Generate Pie Chart",
+        icon: "bi-pie-chart",
+        route: "/pie_chart",
+        description: "Generate a pie chart showing percentage distribution for the first column.",
+        usage: "Click to create a pie chart visualization of your first column's data distribution.",
+        features: ["Percentage calculation", "PNG image output", "Automatic labeling"],
+        note: "Best for categorical data with limited unique values."
+      },
+      {
+        title: "Change Data Type",
+        icon: "bi-arrow-left-right",
+        route: "/change_dtype",
+        description: "Convert a column to a different data type (int, float, str, bool, category).",
+        usage: "Enter column name, select data type, and click 'Apply' to convert.",
+        features: ["Multiple type options", "Error handling", "Type validation"],
+        note: "Invalid conversions will show error messages. Make sure data is compatible."
+      },
+      {
+        title: "Replace Values (Normal)",
+        icon: "bi-arrow-repeat",
+        route: "/replace_values",
+        description: "Replace substrings within text values (case-insensitive partial matching).",
+        usage: "Enter column, search text, and replacement value. Click 'Replace (normal)'.",
+        features: ["Substring replacement", "Case-insensitive", "Partial matching"],
+        note: "Use for general text replacements where exact matching isn't required."
+      },
+      {
+        title: "Replace Values (Sensitive)",
+        icon: "bi-shield-lock",
+        route: "/replace_values_sensitive",
+        description: "Replace only exact full-value matches (case-insensitive but precise).",
+        usage: "Enter column, exact value to replace, and new value. Click 'Replace (sensitive)'.",
+        features: ["Exact value matching", "Case-insensitive", "Full value replacement"],
+        note: "Use when you need to replace only complete, exact values."
+      },
+      {
+        title: "Rename Column",
+        icon: "bi-input-cursor-text",
+        route: "/rename_column",
+        description: "Change the name of a column while preserving the data.",
+        usage: "Enter current column name and new name, then click 'Rename'.",
+        features: ["Preserves data", "Updates column header", "Creates history backup"],
+        note: "Column names must be exact. Check spelling and case."
+      },
+      {
+        title: "Undo Last Operation",
+        icon: "bi-arrow-counterclockwise",
+        route: "/undo_replace",
+        description: "Revert the last data modification operation by restoring from history.",
+        usage: "Click 'Undo replace' to restore the previous state of your data.",
+        features: ["Single-step undo", "History stack", "State restoration"],
+        note: "Only undoes the last operation. Cannot undo multiple steps."
+      },
+      {
+        title: "Drop Column",
+        icon: "bi-x-octagon",
+        route: "/drop_column",
+        description: "Remove an entire column from the dataset.",
+        usage: "Enter column name and click 'Drop column' to remove it permanently.",
+        features: ["Complete column removal", "Creates history backup", "Irreversible without undo"],
+        note: "Be careful - this cannot be undone except through the undo function."
+      },
+      {
+        title: "Filter Rows (Drop/Keep)",
+        icon: "bi-filter-circle",
+        route: "/drop_value",
+        description: "Filter rows based on whether they contain specific values in a column.",
+        usage: "Enter column, value to find, and choose 'Drop selected' or 'Keep selected'.",
+        features: ["Case-insensitive search", "Drop or keep options", "Substring matching"],
+        note: "Drop removes matching rows, Keep removes all non-matching rows."
+      },
+      {
+        title: "Data Profile Analysis",
+        icon: "bi-bar-chart-line",
+        route: "/data_profile",
+        description: "Generate a comprehensive quality report of your dataset.",
+        usage: "Click 'Data profile' to see statistics about data quality issues.",
+        features: ["Missing value counts", "Data validation", "Duplicate detection", "Email/phone validation"],
+        note: "Helps identify data quality problems before cleaning."
+      },
+      {
+        title: "Generate Aliases",
+        icon: "bi-list-ol",
+        route: "/generate_alias",
+        description: "Generate sequential alphanumeric IDs for records.",
+        usage: "Enter prefix, start number, and column name. Click 'Generate Aliases'.",
+        features: ["Custom prefixes", "Zero-padding", "Sequential numbering", "Target column specification"],
+        note: "Perfect for creating ID numbers, reference codes, or sequence numbers."
+      },
+      {
+        title: "Find Data",
+        icon: "bi-search",
+        route: "/find",
+        description: "Search for specific text values across the dataset or in specific columns.",
+        usage: "Use URL parameters: ?keyword=search_text&column=optional_column",
+        features: ["Global or column search", "Case-insensitive", "Returns matching rows"],
+        note: "Accessible through the interface or direct URL parameters."
+      },
+      {
+        title: "Magic Clean",
+        icon: "bi-stars",
+        route: "/magic_clean",
+        description: "AI-powered comprehensive data cleaning with multiple transformations.",
+        usage: "Click the 'Magic Clean' button for automated cleaning.",
+        features: ["Column name standardization", "Email validation", "Numeric conversion", "Date parsing", "Boolean detection"],
+        note: "Beta feature that applies multiple cleaning rules automatically."
+      },
+      {
+        title: "Generate Chart Data",
+        icon: "bi-graph-up",
+        route: "/generate_chart_data",
+        description: "Generate JSON data for Chart.js visualizations.",
+        usage: "Specify X and Y columns to get formatted chart data.",
+        features: ["Chart.js compatibility", "Data aggregation", "JSON output"],
+        note: "Used by the chart drawing function for interactive visualizations."
+      },
+      {
+        title: "Export to CSV",
+        icon: "bi-download",
+        route: "/export_csv",
+        description: "Download the current dataset as a CSV file with direct download.",
+        usage: "Click 'Export CSV' in the top bar to download cleaned data instantly.",
+        features: ["Direct download", "No page navigation", "UTF-8 encoding", "No index column"],
+        note: "Exports the current in-memory state. Always export before closing to save your work."
+      },
+      {
+        title: "Subviolation Mapping",
+        icon: "bi-diagram-3",
+        route: "/upload_mapping_csv & /apply_subviolation_mapping",
+        description: "Apply lookup table mappings to translate codes to descriptions.",
+        usage: "Upload mapping CSV with 'id' and 'name' columns, then apply to target column.",
+        features: ["Code-to-description mapping", "CSV-based lookup", "Target column specification"],
+        note: "Mapping file must have 'id' and 'name' columns exactly."
+      },
+      {
+        title: "Edit Table Cells",
+        icon: "bi-pencil-square",
+        route: "Frontend: makeTableEditable() + /update_cell",
+        description: "Edit individual cells directly in the data preview table.",
+        usage: "Double-click any cell to edit it inline. Press Enter to save or Escape to cancel.",
+        features: ["Inline editing", "Real-time updates", "Visual feedback", "Data validation"],
+        note: "Changes are saved immediately to the in-memory dataset. Export to save permanently."
+      },
+      {
+        title: "Reload Data",
+        icon: "bi-arrow-clockwise",
+        route: "/reload_data",
+        description: "Refresh the data preview to show the current state of the dataset.",
+        usage: "Click 'Refresh view' to reload and display the latest data after operations.",
+        features: ["State synchronization", "Preserves DataTables settings", "Full dataset reload"],
+        note: "Useful after background operations or when display seems out of sync."
+      },
+      {
+        title: "Barangay Mapping",
+        icon: "bi-geo-alt",
+        route: "/upload_barangay_csv & /apply_barangay_mapping",
+        description: "Standardize barangay names using official templates.",
+        usage: "Upload barangay template CSV, then apply mapping to address columns.",
+        features: ["Template matching", "Parentheses handling", "Case-insensitive matching"],
+        note: "Fixes common barangay name variations and standardizes formatting."
+      }
+    ];
+
+    let currentTutorialIndex = 0;
+
+    function toggleTutorialSidebar() {
+      const sidebar = document.getElementById("tutorialSidebar");
+      document.body.classList.toggle("sidebar-open");
+      sidebar.classList.toggle("open");
+      if (sidebar.classList.contains("open")) {
+        updateTutorialContent();
+      }
+    }
+
+    function updateTutorialContent() {
+      const tutorial = tutorials[currentTutorialIndex];
+      const content = document.getElementById("tutorialContent");
+      const counter = document.getElementById("tutorialCounter");
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+
+      // Update counter
+      counter.textContent = `${currentTutorialIndex + 1} / ${tutorials.length}`;
+
+      // Update button states
+      prevBtn.disabled = currentTutorialIndex === 0;
+      nextBtn.disabled = currentTutorialIndex === tutorials.length - 1;
+
+      // Update content
+      content.innerHTML = `
+        <div class="tutorial-item">
+          <h5 class="text-primary mb-3">
+            <i class="bi ${tutorial.icon}"></i> ${tutorial.title}
+          </h5>
+          <div class="mb-3">
+            <strong>Route:</strong> <code>${tutorial.route}</code>
+          </div>
+          <div class="mb-3">
+            <strong>Description:</strong> ${tutorial.description}
+          </div>
+          <div class="mb-3">
+            <strong>Usage:</strong> ${tutorial.usage}
+          </div>
+          <div class="mb-3">
+            <strong>Features:</strong>
+            <ul class="list-unstyled ms-3">
+              ${tutorial.features.map(feature => `<li>• ${feature}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> ${tutorial.note}
+          </div>
+        </div>
+      `;
+    }
+
+    function nextTutorial() {
+      if (currentTutorialIndex < tutorials.length - 1) {
+        currentTutorialIndex++;
+        updateTutorialContent();
+      }
+    }
+
+    function previousTutorial() {
+      if (currentTutorialIndex > 0) {
+        currentTutorialIndex--;
+        updateTutorialContent();
+      }
     }
 
   </script>
