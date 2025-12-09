@@ -72,38 +72,20 @@
     .sidebar-brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
       margin-bottom: 24px;
       padding: 0 4px;
     }
 
-    .sidebar-brand-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #6366f1, #22c55e);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 700;
-      font-size: 18px;
-    }
-
-    .sidebar-brand-text {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.1;
-    }
-
-    .sidebar-brand-text span:first-child {
-      font-weight: 600;
-      font-size: 15px;
-    }
-
-    .sidebar-brand-text span:last-child {
-      font-size: 11px;
-      color: #9ca3af;
+    .sidebar-brand-logo {
+      width: 100%;
+      max-width: 200px;
+      height: auto;
+      display: block;
+      background-color: white;
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .sidebar-nav {
@@ -723,13 +705,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <div class="sidebar-brand-icon">
-          <span>DC</span>
-        </div>
-        <div class="sidebar-brand-text">
-          <span>Data Cleaner</span>
-          <span>Studio</span>
-        </div>
+        <img src="/static/BG.png" alt="Data Cleaner Studio" class="sidebar-brand-logo">
       </div>
 
       <ul class="sidebar-nav">
@@ -882,8 +858,13 @@
                     <option value="int">int</option>
                     <option value="float">float</option>
                     <option value="str">str</option>
+                    <option value="string">string</option>
                     <option value="bool">bool</option>
                     <option value="category">category</option>
+                    <option value="datetime">datetime</option>
+                    <option value="date">date</option>
+                    <option value="time">time</option>
+                    <option value="object">object</option>
                   </select>
                   <button class="tool-chip" onclick="changeDtype()">
                     <i class="bi bi-arrow-left-right"></i> Apply
@@ -1887,6 +1868,15 @@
         usage: "Click 'Standardize text' to apply title case formatting to all text columns.",
         features: ["Title case conversion", "Applied to all string columns", "Preserves non-text data"],
         note: "Perfect for standardizing names, addresses, and other text fields."
+      },
+      {
+        title: "Fix Dates",
+        icon: "bi-calendar",
+        route: "/fix_dates",
+        description: "Automatically detect and standardize date columns to YYYY-MM-DD format.",
+        usage: "Click 'Fix dates' to convert various date formats (MM/DD/YYYY, DD-MM-YYYY, etc.) to standard format.",
+        features: ["Auto-detects date columns", "Handles multiple date formats", "Converts to YYYY-MM-DD", "Preserves invalid dates"],
+        note: "Works on columns containing 'date', 'time', 'join', 'start', 'end' keywords. Invalid dates are left unchanged."
       },
       {
         title: "Drop Missing Values",

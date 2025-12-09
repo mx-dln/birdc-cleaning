@@ -400,11 +400,51 @@ def change_dtype():
 
     save_history()
     try:
-        uploaded_df[column] = uploaded_df[column].astype(dtype)
+        if dtype in ['datetime', 'date', 'time']:
+            # Handle datetime conversions
+            if dtype == 'datetime':
+                uploaded_df[column] = pd.to_datetime(uploaded_df[column], errors='coerce')
+            elif dtype == 'date':
+                uploaded_df[column] = pd.to_datetime(uploaded_df[column], errors='coerce').dt.date
+            elif dtype == 'time':
+                # For time, try to extract time from datetime or parse time strings
+                temp_series = pd.to_datetime(uploaded_df[column], errors='coerce')
+                # If conversion failed, try parsing as time directly
+                if temp_series.isna().all():
+                    uploaded_df[column] = pd.to_datetime(uploaded_df[column], format='mixed', errors='coerce').dt.time
+                else:
+                    uploaded_df[column] = temp_series.dt.time
+        elif dtype in ['int', 'float']:
+            # Handle numeric conversions with better error handling
+            if dtype == 'int':
+                # First convert to float to handle decimals, then to int
+                temp_series = pd.to_numeric(uploaded_df[column], errors='coerce')
+                uploaded_df[column] = temp_series.astype('Int64')  # Nullable integer
+            elif dtype == 'float':
+                uploaded_df[column] = pd.to_numeric(uploaded_df[column], errors='coerce')
+        elif dtype in ['bool']:
+            # Handle boolean conversion
+            def to_bool(val):
+                if pd.isna(val):
+                    return False
+                if isinstance(val, str):
+                    val_lower = val.lower().strip()
+                    return val_lower in ['true', '1', 'yes', 'y', 'active', 'enabled']
+                return bool(val)
+            uploaded_df[column] = uploaded_df[column].apply(to_bool)
+        else:
+            # Handle standard pandas dtypes
+            uploaded_df[column] = uploaded_df[column].astype(dtype)
+            
     except Exception as e:
         return f"Conversion failed: {e}", 400
 
-    return f"<p><b>Changed '{column}' to {dtype}.</b></p>" + dataframe_to_html_with_id(uploaded_df)
+    # Count how many values were converted vs became null
+    total_count = len(uploaded_df[column])
+    null_count = uploaded_df[column].isna().sum()
+    success_count = total_count - null_count
+    
+    return f"<p><b>Changed '{column}' to {dtype}. Successfully converted {success_count}/{total_count} values ({null_count} became null).</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/replace_values')
 def replace_values_non_sensitive():
