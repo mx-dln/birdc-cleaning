@@ -567,7 +567,6 @@ def generate_alias():
     # Compute digit length automatically
     digit_len = len(start_num)
 
-    # Convert start to int
     try:
         start_int = int(start_num)
     except:
