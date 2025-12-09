@@ -1174,23 +1174,26 @@
   <script>
     // Helper: Initialize DataTable on any new table
     function initDataTable() {
-      const table = $("#mappingPreview table, #output table, #barangayPreview table, #unalignedTable table");
-      if ($.fn.DataTable.isDataTable(table)) {
-        table.DataTable().destroy();
-      }
-      table.DataTable({
-        pageLength: 20,
-        lengthMenu: [10, 20, 50, 100],
-        responsive: true
-      });
-
-      // Make output table editable after DataTable initialization
-      setTimeout(() => {
-        if ($("#output table").length) {
-          makeTableEditable();
-        }
-      }, 100);
+  $("#mappingPreview table, #output table, #barangayPreview table, #unalignedTable table").each(function () {
+    if ($.fn.DataTable.isDataTable(this)) {
+      $(this).DataTable().destroy();
     }
+
+    $(this).DataTable({
+      pageLength: 20,
+      lengthMenu: [10, 20, 50, 100],
+      responsive: true
+    });
+  });
+
+  // Make output table editable after DataTable initialization
+  setTimeout(() => {
+    if ($("#output table").length) {
+      makeTableEditable();
+    }
+  }, 100);
+}
+
 
     function showLoader() {
       const loader = document.getElementById('loader');
