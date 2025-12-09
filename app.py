@@ -561,7 +561,7 @@ def generate_alias():
         # auto-create column
         uploaded_df[target_col] = ""
 
-    # Get total rows
+    # Get total row
     total = len(uploaded_df)
 
     # Compute digit length automatically
