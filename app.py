@@ -201,10 +201,23 @@ def remove_duplicates_by_column():
 
     save_history()
     before = len(uploaded_df)
-    uploaded_df = uploaded_df.drop_duplicates(subset=[column])
+    
+    # Create a normalized version of the column for duplicate detection
+    # Convert to string, strip whitespace, and convert to lowercase
+    normalized_series = uploaded_df[column].astype(str).str.strip().str.lower()
+    
+    # Find duplicates based on normalized values (keep first occurrence)
+    duplicate_mask = normalized_series.duplicated(keep='first')
+    
+    # Remove duplicates
+    uploaded_df = uploaded_df[~duplicate_mask]
+    
+    # Reset index to ensure continuous row IDs
+    uploaded_df = uploaded_df.reset_index(drop=True)
+    
     after = len(uploaded_df)
     affected = before - after
-    return f"<p><b>Removed {affected} duplicate rows based on column '{column}'.</b></p>" + dataframe_to_html_with_id(uploaded_df)
+    return f"<p><b>Removed {affected} duplicate rows based on column '{column}' (case-insensitive, whitespace normalized).</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/standardize_text')
 def standardize_text():
@@ -233,11 +246,90 @@ def drop_missing():
 def fill_missing():
     global uploaded_df
     save_history()
+    
+    print("=== DEBUG: Fill Missing Function ===")
+    print(f"DataFrame shape: {uploaded_df.shape}")
+    print(f"Data types:\n{uploaded_df.dtypes}")
+    print(f"Sample values before:\n{uploaded_df.head(10)}")
+    
     before_missing = uploaded_df.isnull().sum().sum()
+    print(f"True null/NaN count: {before_missing}")
+    
+    # Count string-based missing values before replacement
+    string_missing_count = 0
+    missing_indicators = ['', 'NaN', 'nan', 'null', 'NULL', 'N/A', 'n/a', 'None', 'none', '-', '--', 'missing', 'Missing']
+    
+    for col in uploaded_df.columns:
+        for indicator in missing_indicators:
+            # Count exact matches
+            matches = (uploaded_df[col].astype(str) == indicator).sum()
+            if matches > 0:
+                print(f"Column '{col}': Found {matches} matches for '{indicator}'")
+                string_missing_count += matches
+                uploaded_df[col] = uploaded_df[col].replace(indicator, 0)
+    
+    print(f"String-based missing count: {string_missing_count}")
+    
+    # Handle actual None/NaN values
     uploaded_df = uploaded_df.fillna(0)
+    
     after_missing = uploaded_df.isnull().sum().sum()
-    filled = before_missing - after_missing
-    return f"<p><b>Filled {filled} missing cells with 0.</b></p>" + dataframe_to_html_with_id(uploaded_df)
+    filled_nulls = before_missing - after_missing
+    total_filled = filled_nulls + string_missing_count
+    
+    print(f"Values after fillna:\n{uploaded_df.head(10)}")
+    print(f"Total filled: {total_filled}")
+    print("=== END DEBUG ===")
+    
+    return f"<p><b>Filled {total_filled} missing cells with 0 (including {string_missing_count} string-based missing values).</b></p>" + dataframe_to_html_with_id(uploaded_df)
+
+@app.route('/fix_dates')
+def fix_dates():
+    global uploaded_df
+    save_history()
+    
+    def standardize_date(val):
+        if pd.isnull(val) or val == '':
+            return val
+        
+        try:
+            # Convert to string and strip
+            val_str = str(val).strip()
+            
+            # Skip obvious non-dates
+            if val_str.lower() in ['not a date', 'n/a', 'null', 'nan', 'none']:
+                return val
+            
+            # Try parsing with dateutil.parser (very flexible)
+            parsed_date = parser.parse(val_str, fuzzy=True, dayfirst=False)
+            
+            # Return in standard format
+            return parsed_date.strftime('%Y-%m-%d')
+            
+        except:
+            # If parsing fails, return original value
+            return val
+    
+    # Apply to all columns that might contain dates
+    date_columns = []
+    for col in uploaded_df.columns:
+        col_lower = col.lower()
+        # Check if column might be a date column
+        if any(keyword in col_lower for keyword in ['date', 'time', 'created', 'updated', 'join', 'start', 'end']):
+            date_columns.append(col)
+    
+    fixed_count = 0
+    for col in date_columns:
+        original_values = uploaded_df[col].copy()
+        uploaded_df[col] = uploaded_df[col].apply(standardize_date)
+        # Count how many were actually changed
+        changes = (original_values != uploaded_df[col]).sum()
+        fixed_count += changes
+    
+    if date_columns:
+        return f"<p><b>Fixed {fixed_count} date values in columns: {', '.join(date_columns)} to YYYY-MM-DD format.</b></p>" + dataframe_to_html_with_id(uploaded_df)
+    else:
+        return f"<p><b>No date columns detected. Looked for columns containing: date, time, created, updated, join, start, end.</b></p>" + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/sort_values')
 def sort_values():
