@@ -420,6 +420,64 @@
     }
 
     /* Tool groups */
+    .help-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: #6366f1;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      margin-left: 6px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .help-circle:hover {
+      background-color: #4f46e5;
+      transform: scale(1.1);
+    }
+
+    .help-tooltip {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #1f2937;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      white-space: nowrap;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      margin-top: 5px;
+      max-width: 200px;
+      white-space: normal;
+      line-height: 1.3;
+    }
+
+    .help-tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-bottom-color: #1f2937;
+    }
+
+    .help-circle:hover .help-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
     .tool-group-label {
       font-size: 11px;
       text-transform: uppercase;
@@ -1121,6 +1179,9 @@
         <div class="topbar-center">
         </div>
         <div class="topbar-right">
+          <button class="btn-ghost" onclick="showAboutModal()" title="About App">
+            <i class="bi bi-info-circle"></i> About
+          </button>
           <button class="btn-ghost" onclick="loadSample()">
             <i class="bi bi-database"></i> Load Sample
           </button>
@@ -1140,11 +1201,14 @@
           <div class="card-pro" style="flex: 1; margin-right: 0;">
             <div class="card-header-pro">
               <div class="card-header-main">
-                <h5 class="mb-0"><i class="bi bi-table"></i> Data Preview</h5>
+                <h5 class="mb-0">Data Preview <span style="font-size: 12px; color: #666;">v6.0.1</span></h5>
               </div>
               <div style="display: flex; gap: 8px;">
                 <button class="btn-ghost btn-sm" onclick="reloadData()" id="refreshBtn" style="display: none;" title="Refresh Data">
                   <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+                <button class="btn-ghost btn-sm" onclick="undoReplace()" id="undoBtn" style="display: none;" title="Undo Last Operation">
+                  <i class="bi bi-arrow-counterclockwise"></i> Undo
                 </button>
                 <button class="btn-ghost btn-sm" onclick="unselectAllRows()" id="cancelBtn" style="display: none;" title="Unselect All">
                   <i class="bi bi-x-square"></i> Cancel
@@ -1206,17 +1270,23 @@
                       <button class="tool-chip" onclick="callAction('fill_missing')">
                         <i class="bi bi-plus-circle"></i> Fill missing with 0
                       </button>
-                      <button class="tool-chip" onclick="undoReplace()">
-                        <i class="bi bi-arrow-counterclockwise"></i> Undo replace
-                      </button>
                       <button class="tool-chip" onclick="showDataProfile()">
                         <i class="bi bi-bar-chart-line"></i> Data profile
                       </button>
                     </div>
                   </div>
+                  <hr>
 
                   <div class="mb-2">
-                    <div class="tool-group-label">Duplicates</div>
+                    <div class="tool-group-label">
+                    Duplicates
+                    <div class="help-circle">
+                      ?
+                      <div class="help-tooltip">
+                        Remove duplicate rows based on a selected column. Keeps the first occurrence and removes subsequent duplicates.
+                      </div>
+                    </div>
+                  </div>
                     <div class="d-flex flex-wrap gap-2">
                       <select id="dupColumn" class="form-select mini-select" style="max-width:200px;">
                         <option value="">Select column for duplicates</option>
@@ -1230,23 +1300,43 @@
 
                 <!-- Advance Tab Content -->
                 <div id="advance-tab" class="tab-content">
-                  <div class="tool-group-label">Alias Generator</div>
+                  <div class="tool-group-label">
+                    Alias Generator
+                    <div class="help-circle">
+                      ?
+                      <div class="help-tooltip">
+                        Generate sequential aliases with custom prefix and starting number. Useful for creating unique identifiers for records.
+                      </div>
+                    </div>
+                  </div>
                   <div class="d-flex flex-wrap gap-2 mb-2">
                     <input type="text" id="aliasPrefix" class="form-control mini-input"
                       placeholder="Prefix (e.g. KSU-)">
                     <input type="text" id="aliasStart" class="form-control mini-input"
                       placeholder="Start number (e.g. 00001)">
-                    <input type="text" id="aliasColumn" class="form-control mini-input"
-                      placeholder="Column name (e.g. alias)">
+                    <select id="aliasColumn" class="form-select mini-select" style="max-width:200px;">
+                      <option value="">Select column</option>
+                    </select>
                   </div>
                   <button class="tool-chip success" onclick="generateAlias()">
                     <i class="bi bi-list-ol"></i> Generate Aliases
                   </button>
                   <br>
+                  <hr>
                   <div class="mb-3">
-                    <div class="tool-group-label">Filter rows</div>
+                    <div class="tool-group-label">
+                    Select rows
+                    <div class="help-circle">
+                      ?
+                      <div class="help-tooltip">
+                        Filter rows based on specific values in a column. Choose to drop matching rows or keep only matching rows (drop others).
+                      </div>
+                    </div>
+                  </div>
                     <div class="d-flex flex-wrap gap-2 mb-2">
-                      <input type="text" id="dropTableColumn" class="form-control mini-input" placeholder="Column" />
+                      <select id="dropTableColumn" class="form-select mini-select" style="max-width:200px;">
+                        <option value="">Select column</option>
+                      </select>
                       <input type="text" id="dropTableValue" class="form-control mini-input" placeholder="Value" />
                       <select id="dropAction" class="form-select mini-select" style="max-width:160px;">
                         <option value="drop">Drop selected</option>
@@ -1263,11 +1353,20 @@
                 <div id="mapping-tab" class="tab-content">
                   <div class="row g-3">
                     <div class="col-12">
-                      <div class="tool-group-label">Subviolation Mapping</div>
+                      <div class="tool-group-label">
+                      Subviolation Mapping
+                      <div class="help-circle">
+                        ?
+                        <div class="help-tooltip">
+                          Upload a mapping CSV with 'id' and 'name' columns, then apply to translate codes to descriptions in the selected target column.
+                        </div>
+                      </div>
+                    </div>
                       <div class="d-flex flex-wrap gap-2 mb-2">
-                        <input type="file" id="mappingInput" class="form-control form-control-sm" accept=".csv" />
-                        <input type="text" id="mapTargetColumn" class="form-control mini-input"
-                          placeholder="Target column (e.g. subviolation)" />
+                        <input type="file" id="mappingInput" class="form-control form-control-sm" accept=".csv,.xlsx" />
+                        <select id="mapTargetColumn" class="form-select mini-select" style="max-width:200px;">
+                          <option value="">Select target column</option>
+                        </select>
                       </div>
                       <div class="tool-chip-row">
                         <button class="tool-chip" onclick="uploadMappingCSV()">
@@ -1283,9 +1382,18 @@
                     </div>
 
                     <div class="col-12">
-                      <div class="tool-group-label">Barangay Mapping</div>
+                      <hr>
+                      <div class="tool-group-label">
+                      Barangay Mapping
+                      <div class="help-circle">
+                        ?
+                        <div class="help-tooltip">
+                          Upload a barangay template and apply it to standardize address formats. Maps addresses to official barangay names with proper formatting.
+                        </div>
+                      </div>
+                    </div>
                       <div class="d-flex flex-wrap gap-2 mb-2">
-                        <input type="file" id="barangayInput" class="form-control form-control-sm" accept=".csv" />
+                        <input type="file" id="barangayInput" class="form-control form-control-sm" accept=".csv,.xlsx" />
                         <select id="barangayTarget" class="form-select mini-select" style="max-width:200px;">
                           <option value="">Select target column</option>
                         </select>
@@ -1316,7 +1424,9 @@
                   <div class="mb-3">
                     <div class="tool-group-label">Change data type</div>
                     <div class="d-flex flex-wrap gap-2">
-                      <input type="text" id="dtypeColumn" class="form-control mini-input" placeholder="Column name" />
+                      <select id="dtypeColumn" class="form-select mini-select" style="max-width:200px;">
+                        <option value="">Select column</option>
+                      </select>
                       <select id="dtypeSelect" class="form-select mini-select" style="max-width:120px;">
                         <option value="int">int</option>
                         <option value="float">float</option>
@@ -1334,11 +1444,14 @@
                       </button>
                     </div>
                   </div>
+                  <hr>
 
                   <div class="mb-3">
                     <div class="tool-group-label">Replace values</div>
                     <div class="d-flex flex-wrap gap-2 mb-2">
-                      <input type="text" id="replaceColumn" class="form-control mini-input" placeholder="Column" />
+                      <select id="replaceColumn" class="form-select mini-select" style="max-width:200px;">
+                        <option value="">Select column</option>
+                      </select>
                       <input type="text" id="replaceFrom" class="form-control mini-input" placeholder="From" />
                       <input type="text" id="replaceTo" class="form-control mini-input" placeholder="To" />
                     </div>
@@ -1351,18 +1464,23 @@
                       </button>
                     </div>
                   </div>
+                  <hr>
 
                   <div class="mb-1">
                     <div class="tool-group-label">Columns</div>
                     <div class="d-flex flex-wrap gap-2 mb-2">
-                      <input type="text" id="renameOld" class="form-control mini-input" placeholder="Old name" />
+                      <select id="renameOld" class="form-select mini-select" style="max-width:200px;">
+                        <option value="">Select column</option>
+                      </select>
                       <input type="text" id="renameNew" class="form-control mini-input" placeholder="New name" />
                       <button class="tool-chip" onclick="renameColumn()">
                         <i class="bi bi-input-cursor-text"></i> Rename
                       </button>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                      <input type="text" id="dropColumn" class="form-control mini-input" placeholder="Column to drop" />
+                      <select id="dropColumn" class="form-select mini-select" style="max-width:200px;">
+                        <option value="">Select column</option>
+                      </select>
                       <button class="tool-chip danger" onclick="dropColumn()">
                         <i class="bi bi-x-octagon"></i> Drop column
                       </button>
@@ -1461,9 +1579,9 @@
           <div class="dropzone-icon">
             <i class="bi bi-cloud-arrow-up-fill"></i>
           </div>
-          <div class="dropzone-title">Drop a CSV file here or click to browse</div>
-          <div class="dropzone-subtext">Only CSV format is supported.</div>
-          <input type="file" id="importFileInput" accept=".csv" />
+          <div class="dropzone-title">Drop a CSV or Excel file here or click to browse</div>
+          <div class="dropzone-subtext">CSV and Excel (.xlsx) formats are supported.</div>
+          <input type="file" id="importFileInput" accept=".csv,.xlsx" />
           <div class="file-name" id="importFileNameDisplay"></div>
         </div>
 
@@ -1498,6 +1616,42 @@
       <span onclick="closeModal()">&times;</span>
       <div id="modal-body">
         <!-- AJAX content goes here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- About App Modal -->
+  <div id="aboutModal" class="modal">
+    <div class="modal-content" style="width: 700px; max-width: 90%;">
+      <span onclick="closeAboutModal()" class="close-btn">&times;</span>
+      <div class="modal-header">
+        <h3><i class="bi bi-info-circle"></i> About Synqbox Data Cleaner</h3>
+      </div>
+      <div class="modal-body">
+        <div class="mb-4">
+          <h5 class="text-primary mb-3">Synqbox Data Cleaner v6.0.1</h5>
+          <p class="text-muted">
+            The Synqbox Data Cleaner has been designed to simplify the complex process of data cleaning, transformation, and analysis into an efficient, user-friendly experience. Throughout this guide, you have explored powerful features ranging from basic CSV import and text standardization to advanced tools such as automated Magic Clean, inline editing, data profiling, and intelligent mapping for structured data transformation. These tools work together to ensure that your datasets are accurate, consistent, and ready for real-world use Synqbox Cleaning Users Guide.
+          </p>
+        </div>
+        
+        <div class="mb-4">
+          <h6 class="text-secondary mb-2">Data Quality & Decision Making</h6>
+          <p class="text-muted">
+            As data quality plays a critical role in decision-making, reporting, and system reliability, this application empowers users to confidently prepare and validate their data before further processing. With features such as undo history, real-time editing, and flexible exporting, the platform supports both beginners and advanced users in maintaining full control over their data workflow.
+          </p>
+        </div>
+        
+        <div class="mb-4">
+          <h6 class="text-secondary mb-2">Continuous Evolution</h6>
+          <p class="text-muted">
+            This user guide serves as your reference in maximizing the full potential of the system. As development continues and new features are introduced, Synqbox Data Cleaner will continue to evolve to meet growing data preparation needs.
+          </p>
+        </div>
+        
+        <div class="alert alert-success mb-0">
+          <i class="bi bi-heart-fill"></i> <strong>Thank you for using Synqbox Data Cleaner.</strong> We hope this tool becomes a valuable part of your data management and analytics process.
+        </div>
       </div>
     </div>
   </div>
@@ -1629,13 +1783,15 @@
       const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
       const cancelBtn = document.getElementById('cancelBtn');
       const refreshBtn = document.getElementById('refreshBtn');
+      const undoBtn = document.getElementById('undoBtn');
       const selectedCount = document.getElementById('selectedCount');
 
       // Check if there's data loaded
       const hasData = document.querySelector('#output table.dataframe') !== null;
 
-      // Show refresh button only when data is loaded
+      // Show refresh and undo buttons only when data is loaded
       refreshBtn.style.display = hasData ? 'inline-flex' : 'none';
+      undoBtn.style.display = hasData ? 'inline-flex' : 'none';
 
       if (count > 0) {
         bulkDeleteBtn.style.display = 'inline-flex';
@@ -1720,12 +1876,93 @@
       // Update duplicates column dropdown
       const dupColumn = document.getElementById('dupColumn');
       if (dupColumn) {
-        dupColumn.innerHTML = '<option value="">Select column for duplicates</option>';
+        dupColumn.innerHTML = '<option value="">Select column</option>';
         headers.forEach(header => {
           const option = document.createElement('option');
           option.value = header;
           option.textContent = header;
           dupColumn.appendChild(option);
+        });
+      }
+
+      // Update filter column dropdown
+      const dropTableColumn = document.getElementById('dropTableColumn');
+      if (dropTableColumn) {
+        dropTableColumn.innerHTML = '<option value="">Select column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          dropTableColumn.appendChild(option);
+        });
+      }
+
+      // Update alias column dropdown
+      const aliasColumn = document.getElementById('aliasColumn');
+      if (aliasColumn) {
+        aliasColumn.innerHTML = '<option value="">Select column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          aliasColumn.appendChild(option);
+        });
+      }
+
+      // Update subviolation mapping target column dropdown
+      const mapTargetColumn = document.getElementById('mapTargetColumn');
+      if (mapTargetColumn) {
+        mapTargetColumn.innerHTML = '<option value="">Select target column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          mapTargetColumn.appendChild(option);
+        });
+      }
+
+      // Update Transform tab dropdowns
+      const dtypeColumn = document.getElementById('dtypeColumn');
+      if (dtypeColumn) {
+        dtypeColumn.innerHTML = '<option value="">Select column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          dtypeColumn.appendChild(option);
+        });
+      }
+
+      const replaceColumn = document.getElementById('replaceColumn');
+      if (replaceColumn) {
+        replaceColumn.innerHTML = '<option value="">Select column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          replaceColumn.appendChild(option);
+        });
+      }
+
+      const renameOld = document.getElementById('renameOld');
+      if (renameOld) {
+        renameOld.innerHTML = '<option value="">Select column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          renameOld.appendChild(option);
+        });
+      }
+
+      const dropColumnTransform = document.getElementById('dropColumn');
+      if (dropColumnTransform) {
+        dropColumnTransform.innerHTML = '<option value="">Select column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          dropColumnTransform.appendChild(option);
         });
       }
     }
@@ -1976,11 +2213,19 @@
     }
 
     function isCSV(file) {
-      return file && file.name.toLowerCase().endsWith(".csv");
+      return file && (file.name.toLowerCase().endsWith(".csv") || file.name.toLowerCase().endsWith(".xlsx"));
     }
 
     function closeModal() {
       document.getElementById('dataProfileModal').style.display = 'none';
+    }
+
+    function showAboutModal() {
+      document.getElementById('aboutModal').style.display = 'block';
+    }
+
+    function closeAboutModal() {
+      document.getElementById('aboutModal').style.display = 'none';
     }
 
     async function dropValue() {

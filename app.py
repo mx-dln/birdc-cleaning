@@ -84,21 +84,45 @@ def index():
 @app.route('/load_csv', methods=['POST'])
 def load_csv():
     global uploaded_df, history_stack
-    file = request.files.get('file')
-    if file is None:
-        return "No file uploaded.", 400
 
-    # Validate file extension (only CSV allowed)
-    filename = file.filename.lower()
-    if not filename.endswith(".csv"):
-        return "<p style='color:red; font-weight:bold;'>❌ Invalid file type. Only CSV files are allowed.</p>", 400
-    raw_data = file.read()
-    result = chardet.detect(raw_data)
-    encoding = result['encoding']
-    file.seek(0)
-    uploaded_df = pd.read_csv(file, encoding=encoding)
-    history_stack.clear()  # Clear history when loading new data
-    return dataframe_to_html_with_id(uploaded_df)
+    if request.method == 'POST':
+        file = request.files.get('file')
+        if file is None:
+            return "No file uploaded.", 400
+
+        # Debug: Print file info
+        print(f"File received: {file.filename}")
+        print(f"File content type: {file.content_type}")
+        
+        # Check file extension
+        filename = file.filename.lower()
+        if not (filename.endswith('.csv') or filename.endswith('.xlsx')):
+            print(f"Invalid file extension: {filename}")
+            return "Invalid file format. Please upload a CSV or Excel (.xlsx) file.", 400
+
+        try:
+            if filename.endswith('.xlsx'):
+                # Handle Excel file
+                print("Reading Excel file...")
+                uploaded_df = pd.read_excel(file, engine='openpyxl')
+                print(f"Excel file loaded successfully. Shape: {uploaded_df.shape}")
+            else:
+                # Handle CSV file with encoding detection
+                print("Reading CSV file...")
+                raw_data = file.read()
+                result = chardet.detect(raw_data)
+                encoding = result['encoding']
+                file.seek(0)
+                uploaded_df = pd.read_csv(file, encoding=encoding)
+                print(f"CSV file loaded successfully. Shape: {uploaded_df.shape}")
+            
+            history_stack.clear()  # Clear history when loading new data
+            return dataframe_to_html_with_id(uploaded_df)
+        except Exception as e:
+            print(f"Error reading file: {str(e)}")
+            return f"Error reading file: {str(e)}", 400
+
+    return render_template('index.html')
 
 @app.route('/remove_special_chars')
 def remove_special_chars():
@@ -871,12 +895,27 @@ def upload_mapping_csv():
     file = request.files.get('file')
     if file is None:
         return "No mapping file uploaded.", 400
-    raw_data = file.read()
-    result = chardet.detect(raw_data)
-    encoding = result['encoding']
-    file.seek(0)
-    mapping_df = pd.read_csv(file, encoding=encoding)
-    return mapping_df.to_html()
+
+    # Check file extension
+    filename = file.filename.lower()
+    if not (filename.endswith('.csv') or filename.endswith('.xlsx')):
+        return "Invalid file format. Please upload a CSV or Excel (.xlsx) file.", 400
+
+    try:
+        if filename.endswith('.xlsx'):
+            # Handle Excel file
+            mapping_df = pd.read_excel(file, engine='openpyxl')
+        else:
+            # Handle CSV file with encoding detection
+            raw_data = file.read()
+            result = chardet.detect(raw_data)
+            encoding = result['encoding']
+            file.seek(0)
+            mapping_df = pd.read_csv(file, encoding=encoding)
+        
+        return mapping_df.to_html()
+    except Exception as e:
+        return f"Error reading mapping file: {str(e)}", 400
 
 @app.route('/apply_subviolation_mapping')
 def apply_subviolation_mapping():
@@ -911,21 +950,28 @@ def upload_barangay_csv():
     if file is None:
         return "No barangay file uploaded.", 400
 
-    raw_data = file.read()
-    result = chardet.detect(raw_data)
-    encoding = result['encoding']
-    file.seek(0)
+    # Check file extension
+    filename = file.filename.lower()
+    if not (filename.endswith('.csv') or filename.endswith('.xlsx')):
+        return "Invalid file format. Please upload a CSV or Excel (.xlsx) file.", 400
 
-    # Just load barangays exactly as they are
-    barangay_df = pd.read_csv(file, encoding=encoding, header=None, names=["Barangay"])
+    try:
+        if filename.endswith('.xlsx'):
+            # Handle Excel file
+            barangay_df = pd.read_excel(file, engine='openpyxl', header=None, names=["Barangay"])
+        else:
+            # Handle CSV file with encoding detection
+            raw_data = file.read()
+            result = chardet.detect(raw_data)
+            encoding = result['encoding']
+            file.seek(0)
 
-    return (
-        f"<p><b>Barangay list loaded successfully with {len(barangay_df)} rows.</b></p>"
-        + barangay_df.to_html()
-    )
+            # Just load barangays exactly as they are
+            barangay_df = pd.read_csv(file, encoding=encoding, header=None, names=["Barangay"])
 
-
-import re
+        return dataframe_to_html_with_id(barangay_df)
+    except Exception as e:
+        return f"Error reading barangay file: {str(e)}", 400
 
 @app.route('/apply_barangay_mapping', methods=['POST'])
 def apply_barangay_template():
