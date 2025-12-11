@@ -23,6 +23,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Lottie Animation -->
+  <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.11/dist/dotlottie-wc.js" type="module"></script>
+
   <!-- Icons (Bootstrap Icons) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
@@ -148,23 +151,73 @@
     }
 
     .topbar {
-      height: 60px;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(229, 231, 235, 0.8);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      padding: 12px 20px;
+      background: white;
       position: sticky;
       top: 0;
-      z-index: 20;
+      z-index: 1001;
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.95);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     }
 
     .topbar-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+    }
+
+    .topbar-logo {
+      display: flex;
+      align-items: center;
+    }
+
+    .topbar-brand-logo {
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .topbar-center {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .topbar-nav {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .topbar-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .topbar-link:hover {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .topbar-link.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .topbar-link i {
+      font-size: 14px;
     }
 
     .topbar-title {
@@ -569,6 +622,36 @@
       background: #e5e7eb;
     }
 
+    .cleaning-tabs {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #e5e7eb;
+      width: 200px;
+      min-width: 200px;
+      background: #f9fafb;
+    }
+
+    .cleaning-tabs button {
+      text-align: left;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .cleaning-tabs button:hover {
+      background: #f3f4f6;
+    }
+
+    .cleaning-tabs button.active {
+      background: white;
+      border-left-color: var(--primary);
+      font-weight: 500;
+      color: var(--primary);
+    }
+
     body.sidebar-open .content-wrap {
       margin-right: 420px;
       transition: margin-right 0.3s ease;
@@ -669,7 +752,322 @@
       }
     }
 
+    /* Tabbed interface */
+    .tab-content {
+      display: none;
+      padding: 1.5rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .operations-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .tab-content-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+
+    .content-wrap {
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      background-color: var(--bg);
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 60px);
+      /* Adjust based on your header height */
+    }
+
+    .card-pro {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-pro .card-body {
+      flex: 1;
+      overflow: auto;
+    }
+
+    /* Operations Container */
+    .operations-container {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      /* Fix for Firefox */
+      position: relative;
+      overflow: hidden;
+      gap: 0;
+      /* Remove gap between main content and sidebar */
+    }
+
+    /* Data Preview */
+    .card-pro {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      /* Fix for flexbox overflow */
+      margin-right: 34px;
+      /* Space for fixed tab bar */
+      background: #fff;
+      border-radius: 8px 0 0 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .card-pro.tab-open {
+      margin-right: 390px;
+      /* Adjusted for moved tab content */
+    }
+
+    .card-pro .card-body {
+      flex: 1;
+      overflow: auto;
+      padding: 1.5rem;
+    }
+
+    /* Operations Sidebar */
+    .operations-sidebar {
+      display: flex;
+      flex-direction: row;
+      width: auto;
+      height: 100%;
+      background: white;
+      border-left: 1px solid #e2e8f0;
+      z-index: 10;
+      position: relative;
+    }
+
+    .operations-sidebar:hover {
+      transform: translateX(0);
+    }
+
+    .operations-sidebar .card-pro {
+      margin-right: 0;
+      border-radius: 0;
+      box-shadow: none;
+      height: 100%;
+    }
+
+    .operations-tabs-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Vertical Tabs */
+    .vertical-tabs {
+      width: 30px;
+      min-width: 60px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #e2e8f0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .vertical-tabs .tab-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 0;
+      border: none;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      color: #64748b;
+      font-size: 0.7rem;
+      font-weight: 600;
+      border-left: 3px solid transparent;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      margin: 1px 0;
+      border-radius: 0 8px 8px 0;
+      flex-direction: column;
+      height: calc(25% - 2px);
+      width: 100%;
+      border-bottom: none;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .vertical-tabs .tab-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(99, 102, 241, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .vertical-tabs .tab-button:hover {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      color: #1e293b;
+      transform: translateX(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-left-color: #6366f1;
+    }
+
+    .vertical-tabs .tab-button:hover::before {
+      opacity: 1;
+    }
+
+    .vertical-tabs .tab-button i {
+      display: none;
+      /* Hide icons for vertical text */
+    }
+
+
+    .vertical-tabs .tab-button.active {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-left: 3px solid #6366f1;
+      color: #6366f1;
+      font-weight: 700;
+      position: relative;
+      right: -2px;
+      border-right: 2px solid #ffffff;
+      transform: translateX(-2px);
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+      z-index: 10;
+    }
+
+    .vertical-tabs .tab-button.active::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -8px;
+      width: 6px;
+      height: 6px;
+      background: #6366f1;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+    }
+
+    .vertical-tabs .tab-button.active i {
+      display: none;
+      /* Hide icons for vertical text */
+    }
+
+
+    /* Tab Content */
+    .tab-content {
+      position: absolute;
+      right: 95px;
+      /* Moved 10px more to the left */
+      top: 0;
+      bottom: 0;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 2rem;
+      background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+      width: 320px;
+      min-width: 320px;
+      border-left: 1px solid #e2e8f0;
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
+      border-radius: 16px 0 0 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .tab-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+      border-radius: 16px 0 0 0;
+    }
+
+    .tab-content.active {
+      display: flex;
+      animation: slideIn 0.2s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px) scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* Row selection for bulk delete */
+    .dataframe tbody tr {
+      user-select: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .dataframe tbody tr:hover {
+      background-color: #f8fafc;
+    }
+    
+    .dataframe tbody tr.selected {
+      background-color: #fee2e2;
+      border: 2px solid #dc2626;
+    }
+    
+    .dataframe tbody tr.selecting {
+      background-color: #fef3c7;
+    }
+    
+    .selection-info {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: none;
+    }
+
     /* Responsive tweaks */
+    @media (max-width: 1200px) {
+      .operations-sidebar {
+        position: relative;
+      }
+
+      .tab-content {
+        width: 250px;
+        min-width: 250px;
+      }
+    }
+
     @media (max-width: 992px) {
       .sidebar {
         display: none;
@@ -699,54 +1097,34 @@
 </head>
 
 <body>
-  <div id="loader">⏳ Processing data…</div>
+  <div id="loader"> Processing data…</div>
 
   <div class="app-shell">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <img src="/static/BG.png" alt="Data Cleaner Studio" class="sidebar-brand-logo">
-      </div>
-
-      <ul class="sidebar-nav">
-        <li><a href="#" class="sidebar-link active"><i class="bi bi-grid-1x2-fill"></i><span>Workspace</span></a></li>
-
-        <!-- IMPORT DATA BUTTON -->
-        <li>
-          <a href="#" class="sidebar-link" onclick="toggleImportSidebar()">
-            <i class="bi bi-upload"></i><span>Import Data</span>
-          </a>
-        </li>
-
-        <!-- TUTORIAL BUTTON -->
-        <li>
-          <a href="#" class="sidebar-link" onclick="toggleTutorialSidebar()">
-            <i class="bi bi-question-circle"></i><span>Tutorial</span>
-          </a>
-        </li>
-      </ul>
-
-      <div class="sidebar-footer">
-        <span>App Version: 5.5.10</span>
-        <span>Export CSV before closing.</span>
-      </div>
-    </aside>
-
     <!-- Main area -->
     <div class="main-area">
       <!-- Topbar -->
       <header class="topbar">
         <div class="topbar-left">
-          <div>
-            <div class="topbar-title">Data Cleaner</div>
-            <div class="topbar-subtitle">Interactive data cleaning workspace</div>
+          <div class="topbar-logo">
+            <img src="/static/BG.png" alt="Data Cleaner Studio" class="topbar-brand-logo">
           </div>
+          <nav class="topbar-nav">
+            <a href="#" class="topbar-link active"><i class="bi bi-grid-1x2-fill"></i><span>Workspace</span></a>
+            <a href="#" class="topbar-link" onclick="toggleImportModal()"><i class="bi bi-upload"></i><span>Import
+                Data</span></a>
+            <a href="#" class="topbar-link" onclick="toggleTutorialSidebar()"><i
+                class="bi bi-question-circle"></i><span>Tutorial</span></a>
+            <a href="#" class="topbar-link" onclick="callAction('magic_clean')"><i class="bi bi-stars"></i><span>Magic
+                Clean</span></a>
+          </nav>
+        </div>
+        <div class="topbar-center">
         </div>
         <div class="topbar-right">
-          <span class="pill-badge">
-            <i class="bi bi-cpu"></i> AI-assisted cleaning
-          </span>
-          <button class="btn-ghost" onclick="exportCSV()">
+          <button class="btn-ghost" onclick="loadSample()">
+            <i class="bi bi-database"></i> Load Sample
+          </button>
+          <button class="btn-ghost" style="background-color: #10b981; color: white;" onclick="exportCSV()">
             <i class="bi bi-download"></i> Export CSV
           </button>
           <div class="user-avatar">
@@ -757,295 +1135,245 @@
 
       <!-- Content -->
       <main class="content-wrap">
-
-        <!-- LOAD DATA CARD (top) -->
-
-        <div class="row g-3">
-          <div class="col-12 col-xl-8">
-            <div class="card-pro">
-              <div class="card-header-pro">
-                <div class="card-header-main">
-                  <div class="card-title-pro">Data Preview</div>
-                  <div class="card-subtitle-pro">This reflects the current in-memory dataset after all operations.</div>
-                </div>
-                <div class="d-flex gap-2">
-                  <button class="btn-ghost" onclick="loadSample()">
-                    <i class="bi bi-database"></i> Load sample
-                  </button>
-                  <button class="btn-ghost" onclick="reloadData()">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh view
-                  </button>
-                </div>
-              </div>
-              <div id="output"></div>
-            </div>
-          </div>
-
-          <div class="col-12 col-xl-4">
-            <div class="card-pro">
-              <div class="card-header-pro">
-                <div class="card-header-main">
-                  <div class="card-title-pro">Cleaning Operations</div>
-                  <div class="card-subtitle-pro">Standardization, missing values, and duplicates.</div>
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <div class="tool-group-label">Quick actions</div>
-                <div class="tool-chip-row">
-                  <button class="tool-chip success" onclick="callAction('standardize_text')">
-                    <i class="bi bi-type"></i> Standardize text
-                  </button>
-                  <button class="tool-chip" onclick="callAction('remove_special_chars')">
-                    <i class="bi bi-slash-circle"></i> Remove special chars
-                  </button>
-                  <button class="tool-chip" onclick="callAction('fix_dates')">
-                    <i class="bi bi-calendar"></i> Fix dates
-                  </button>
-                  <button class="tool-chip" onclick="callAction('drop_missing')">
-                    <i class="bi bi-dash-circle"></i> Drop missing rows
-                  </button>
-                  <button class="tool-chip" onclick="callAction('fill_missing')">
-                    <i class="bi bi-plus-circle"></i> Fill missing with 0
-                  </button>
-                  <button class="tool-chip" onclick="undoReplace()">
-                    <i class="bi bi-arrow-counterclockwise"></i> Undo replace
-                  </button>
-                  <button class="tool-chip" onclick="showDataProfile()">
-                    <i class="bi bi-bar-chart-line"></i> Data profile
-                  </button>
-                </div>
-              </div>
-
-              <div class="mb-2">
-                <div class="tool-group-label">Duplicates</div>
-                <div class="d-flex flex-wrap gap-2">
-                  <input type="text" id="dupColumn" class="form-control mini-input"
-                    placeholder="Column name for duplicates" />
-                  <button class="tool-chip danger" onclick="removeDuplicatesSelected()">
-                    <i class="bi bi-layers-half"></i> Remove duplicates
-                  </button>
-                </div>
-              </div>
-              <div class="card-pro">
-                <div class="tool-group-label">Alias Generator</div>
-
-                <div class="d-flex flex-wrap gap-2 mb-2">
-                  <input type="text" id="aliasPrefix" class="form-control mini-input" placeholder="Prefix (e.g. KSU-)">
-                  <input type="text" id="aliasStart" class="form-control mini-input"
-                    placeholder="Start number (e.g. 00001)">
-                  <input type="text" id="aliasColumn" class="form-control mini-input"
-                    placeholder="Column name (e.g. alias)">
-                </div>
-
-                <button class="tool-chip success" onclick="generateAlias()">
-                  <i class="bi bi-list-ol"></i> Generate Aliases
-                </button>
-              </div>
-              <div class="card-header-pro">
-                <div class="card-header-main">
-                  <div class="card-title-pro">Transform & Structure</div>
-                  <div class="card-subtitle-pro">Data types, replacements, filters, and columns.</div>
-                </div>
-              </div>
-
-              <!-- Data type -->
-              <div class="mb-3">
-                <div class="tool-group-label">Change data type</div>
-                <div class="d-flex flex-wrap gap-2">
-                  <input type="text" id="dtypeColumn" class="form-control mini-input" placeholder="Column name" />
-                  <select id="dtypeSelect" class="form-select mini-select" style="max-width:120px;">
-                    <option value="int">int</option>
-                    <option value="float">float</option>
-                    <option value="str">str</option>
-                    <option value="string">string</option>
-                    <option value="bool">bool</option>
-                    <option value="category">category</option>
-                    <option value="datetime">datetime</option>
-                    <option value="date">date</option>
-                    <option value="time">time</option>
-                    <option value="object">object</option>
-                  </select>
-                  <button class="tool-chip" onclick="changeDtype()">
-                    <i class="bi bi-arrow-left-right"></i> Apply
-                  </button>
-                </div>
-              </div>
-
-              <!-- Replace -->
-              <div class="mb-3">
-                <div class="tool-group-label">Replace values</div>
-                <div class="d-flex flex-wrap gap-2 mb-2">
-                  <input type="text" id="replaceColumn" class="form-control mini-input" placeholder="Column" />
-                  <input type="text" id="replaceFrom" class="form-control mini-input" placeholder="From" />
-                  <input type="text" id="replaceTo" class="form-control mini-input" placeholder="To" />
-                </div>
-                <div class="tool-chip-row">
-                  <button class="tool-chip" onclick="replaceValues(false)">
-                    <i class="bi bi-arrow-repeat"></i> Replace (normal)
-                  </button>
-                  <button class="tool-chip danger" onclick="replaceValues(true)">
-                    <i class="bi bi-shield-lock"></i> Replace (sensitive)
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- CLEANING OPERATIONS (FULL WIDTH, UNDER PREVIEW) -->
-          <div class="card-pro">
+        <div class="operations-container">
+          <!-- Data Preview (Full Width) -->
+          <div class="card-pro" style="flex: 1; margin-right: 0;">
             <div class="card-header-pro">
               <div class="card-header-main">
-                <div class="card-title-pro">Quick Chart</div>
-                <div class="card-subtitle-pro">Plot one column against another for a fast visual check.</div>
+                <h5 class="mb-0"><i class="bi bi-table"></i> Data Preview</h5>
               </div>
-            </div>
-
-            <div class="mb-2 d-flex flex-wrap gap-2">
-              <select id="chartType" class="form-select mini-select" style="max-width:120px;">
-                <option value="bar">Bar</option>
-                <option value="line">Line</option>
-                <option value="pie">Pie</option>
-                <option value="doughnut">Doughnut</option>
-              </select>
-              <input type="text" id="xAxisColumn" class="form-control mini-input" placeholder="X axis column" />
-              <input type="text" id="yAxisColumn" class="form-control mini-input" placeholder="Y axis column" />
-              <button class="tool-chip" onclick="drawChart()">
-                <i class="bi bi-graph-up"></i> Draw chart
-              </button>
-            </div>
-
-          </div>
-
-          <!-- TRANSFORM & STRUCTURE (FULL WIDTH UNDER CLEANING) -->
-          <div class="card-pro">
-            <div class="mb-3">
-              <div class="tool-group-label">Filter rows</div>
-              <div class="d-flex flex-wrap gap-2 mb-2">
-                <input type="text" id="dropTableColumn" class="form-control mini-input" placeholder="Column" />
-                <input type="text" id="dropTableValue" class="form-control mini-input" placeholder="Value" />
-                <select id="dropAction" class="form-select mini-select" style="max-width:160px;">
-                  <option value="drop">Drop selected</option>
-                  <option value="keep">Keep selected (drop others)</option>
-                </select>
-              </div>
-              <button class="tool-chip danger" onclick="dropValue()">
-                <i class="bi bi-filter-circle"></i> Apply filter
-              </button>
-            </div>
-
-            <!-- Rename / drop columns -->
-            <div class="mb-1">
-              <div class="tool-group-label">Columns</div>
-              <div class="d-flex flex-wrap gap-2 mb-2">
-                <input type="text" id="renameOld" class="form-control mini-input" placeholder="Old name" />
-                <input type="text" id="renameNew" class="form-control mini-input" placeholder="New name" />
-                <button class="tool-chip" onclick="renameColumn()">
-                  <i class="bi bi-input-cursor-text"></i> Rename
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-ghost btn-sm" onclick="reloadData()" id="refreshBtn" style="display: none;" title="Refresh Data">
+                  <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+                <button class="btn-ghost btn-sm" onclick="unselectAllRows()" id="cancelBtn" style="display: none;" title="Unselect All">
+                  <i class="bi bi-x-square"></i> Cancel
+                </button>
+                <button class="btn-ghost btn-sm" onclick="bulkDeleteRows()" id="bulkDeleteBtn" style="display: none; background-color: #dc2626; color: white;">
+                  <i class="bi bi-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
                 </button>
               </div>
-              <div class="d-flex flex-wrap gap-2">
-                <input type="text" id="dropColumn" class="form-control mini-input" placeholder="Column to drop" />
-                <button class="tool-chip danger" onclick="dropColumn()">
-                  <i class="bi bi-x-octagon"></i> Drop column
-                </button>
+            </div>
+            <div class="card-body" style="overflow: auto;">
+              <div id="output">
+                <!-- No data animation - centered in data preview -->
+                <div class="no-data-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
+                  <dotlottie-wc src="https://lottie.host/807ebaf2-5ece-48b7-86f5-bae42faecb8b/nNDyZXmsdp.lottie"
+                    style="width: 200px;height: 200px" autoplay loop></dotlottie-wc>
+                  <p class="text-muted text-center mt-3">No data loaded. Import a CSV file to get started.</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- MAPPING & BARANGAY -->
-        <div class="card-pro">
-          <div class="card-header-pro">
-            <div class="card-header-main">
-              <div class="card-title-pro">Mapping & Barangay Tools</div>
-              <div class="card-subtitle-pro">Apply lookup tables and fix barangay inconsistencies.</div>
+          <!-- Operations Sidebar -->
+          <div class="operations-sidebar">
+            <div class="card-pro" style="height: 100%;">
+              <div class="operations-tabs-container">
+                <!-- Vertical Tabs -->
+                <div class="vertical-tabs">
+                  <button class="tab-button" onclick="switchTab('basic')">
+                    <i class="bi bi-lightning-charge"></i> Basic
+                  </button>
+                  <button class="tab-button" onclick="switchTab('advance')">
+                    <i class="bi bi-gear"></i> Advance
+                  </button>
+                  <button class="tab-button" onclick="switchTab('mapping')">
+                    <i class="bi bi-diagram-3"></i> Mapping
+                  </button>
+                  <button class="tab-button" onclick="switchTab('transform')">
+                    <i class="bi bi-braces"></i> Transform
+                  </button>
+                </div>
+
+                <!-- Basic Tab Content -->
+                <div id="basic-tab" class="tab-content">
+                  <div class="mb-3">
+                    <div class="tool-group-label">Quick actions</div>
+                    <div class="tool-chip-row">
+                      <button class="tool-chip success" onclick="callAction('standardize_text')">
+                        <i class="bi bi-type"></i> Standardize text
+                      </button>
+                      <button class="tool-chip" onclick="callAction('remove_special_chars')">
+                        <i class="bi bi-slash-circle"></i> Remove special chars
+                      </button>
+                      <button class="tool-chip" onclick="callAction('fix_dates')">
+                        <i class="bi bi-calendar"></i> Fix dates
+                      </button>
+                      <button class="tool-chip" onclick="callAction('drop_missing')">
+                        <i class="bi bi-dash-circle"></i> Drop missing rows
+                      </button>
+                      <button class="tool-chip" onclick="callAction('fill_missing')">
+                        <i class="bi bi-plus-circle"></i> Fill missing with 0
+                      </button>
+                      <button class="tool-chip" onclick="undoReplace()">
+                        <i class="bi bi-arrow-counterclockwise"></i> Undo replace
+                      </button>
+                      <button class="tool-chip" onclick="showDataProfile()">
+                        <i class="bi bi-bar-chart-line"></i> Data profile
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mb-2">
+                    <div class="tool-group-label">Duplicates</div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <select id="dupColumn" class="form-select mini-select" style="max-width:200px;">
+                        <option value="">Select column for duplicates</option>
+                      </select>
+                      <button class="tool-chip danger" onclick="removeDuplicatesSelected()">
+                        <i class="bi bi-layers-half"></i> Remove duplicates
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Advance Tab Content -->
+                <div id="advance-tab" class="tab-content">
+                  <div class="tool-group-label">Alias Generator</div>
+                  <div class="d-flex flex-wrap gap-2 mb-2">
+                    <input type="text" id="aliasPrefix" class="form-control mini-input"
+                      placeholder="Prefix (e.g. KSU-)">
+                    <input type="text" id="aliasStart" class="form-control mini-input"
+                      placeholder="Start number (e.g. 00001)">
+                    <input type="text" id="aliasColumn" class="form-control mini-input"
+                      placeholder="Column name (e.g. alias)">
+                  </div>
+                  <button class="tool-chip success" onclick="generateAlias()">
+                    <i class="bi bi-list-ol"></i> Generate Aliases
+                  </button>
+                  <br>
+                  <div class="mb-3">
+                    <div class="tool-group-label">Filter rows</div>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                      <input type="text" id="dropTableColumn" class="form-control mini-input" placeholder="Column" />
+                      <input type="text" id="dropTableValue" class="form-control mini-input" placeholder="Value" />
+                      <select id="dropAction" class="form-select mini-select" style="max-width:160px;">
+                        <option value="drop">Drop selected</option>
+                        <option value="keep">Keep selected (drop others)</option>
+                      </select>
+                    </div>
+                    <button class="tool-chip danger" onclick="dropValue()">
+                      <i class="bi bi-filter-circle"></i> Apply filter
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Mapping Tab Content -->
+                <div id="mapping-tab" class="tab-content">
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <div class="tool-group-label">Subviolation Mapping</div>
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <input type="file" id="mappingInput" class="form-control form-control-sm" accept=".csv" />
+                        <input type="text" id="mapTargetColumn" class="form-control mini-input"
+                          placeholder="Target column (e.g. subviolation)" />
+                      </div>
+                      <div class="tool-chip-row">
+                        <button class="tool-chip" onclick="uploadMappingCSV()">
+                          <i class="bi bi-file-earmark-arrow-up"></i> Upload mapping CSV
+                        </button>
+                        <button class="tool-chip success" onclick="applySubviolationMapping()">
+                          <i class="bi bi-diagram-3"></i> Apply mapping
+                        </button>
+                        <button class="tool-chip" onclick="toggleMappingSidebar()">
+                          <i class="bi bi-layout-sidebar-inset"></i> Toggle mapping preview
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="col-12">
+                      <div class="tool-group-label">Barangay Mapping</div>
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <input type="file" id="barangayInput" class="form-control form-control-sm" accept=".csv" />
+                        <select id="barangayTarget" class="form-select mini-select" style="max-width:200px;">
+                          <option value="">Select target column</option>
+                        </select>
+                      </div>
+                      <div class="tool-chip-row">
+                        <button class="tool-chip" onclick="uploadBarangayCSV()">
+                          <i class="bi bi-file-earmark-arrow-up"></i> Upload barangay CSV
+                        </button>
+                        <button class="tool-chip success" onclick="applyBarangayMapping()">
+                          <i class="bi bi-arrow-right-circle"></i> Apply mapping
+                        </button>
+                        <button class="tool-chip" onclick="toggleBarangaySidebar()">
+                          <i class="bi bi-layout-sidebar-inset-reverse"></i> Toggle barangay preview
+                        </button>
+                        <button class="tool-chip danger" onclick="dropUnalignedBarangays()">
+                          <i class="bi bi-trash"></i> Drop Unaligned
+                        </button>
+                        <button class="tool-chip" onclick="exportUnaligned()">
+                          <i class="bi bi-download"></i> Export unaligned
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Transform Tab Content -->
+                <div id="transform-tab" class="tab-content">
+                  <div class="mb-3">
+                    <div class="tool-group-label">Change data type</div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <input type="text" id="dtypeColumn" class="form-control mini-input" placeholder="Column name" />
+                      <select id="dtypeSelect" class="form-select mini-select" style="max-width:120px;">
+                        <option value="int">int</option>
+                        <option value="float">float</option>
+                        <option value="str">str</option>
+                        <option value="string">string</option>
+                        <option value="bool">bool</option>
+                        <option value="category">category</option>
+                        <option value="datetime">datetime</option>
+                        <option value="date">date</option>
+                        <option value="time">time</option>
+                        <option value="object">object</option>
+                      </select>
+                      <button class="tool-chip" onclick="changeDtype()">
+                        <i class="bi bi-arrow-left-right"></i> Apply
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <div class="tool-group-label">Replace values</div>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                      <input type="text" id="replaceColumn" class="form-control mini-input" placeholder="Column" />
+                      <input type="text" id="replaceFrom" class="form-control mini-input" placeholder="From" />
+                      <input type="text" id="replaceTo" class="form-control mini-input" placeholder="To" />
+                    </div>
+                    <div class="tool-chip-row">
+                      <button class="tool-chip" onclick="replaceValues(false)">
+                        <i class="bi bi-arrow-repeat"></i> Replace (normal)
+                      </button>
+                      <button class="tool-chip danger" onclick="replaceValues(true)">
+                        <i class="bi bi-shield-lock"></i> Replace (sensitive)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mb-1">
+                    <div class="tool-group-label">Columns</div>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                      <input type="text" id="renameOld" class="form-control mini-input" placeholder="Old name" />
+                      <input type="text" id="renameNew" class="form-control mini-input" placeholder="New name" />
+                      <button class="tool-chip" onclick="renameColumn()">
+                        <i class="bi bi-input-cursor-text"></i> Rename
+                      </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <input type="text" id="dropColumn" class="form-control mini-input" placeholder="Column to drop" />
+                      <button class="tool-chip danger" onclick="dropColumn()">
+                        <i class="bi bi-x-octagon"></i> Drop column
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+
           </div>
-
-          <div class="row g-3">
-            <!-- Mapping -->
-            <div class="col-12 col-lg-6">
-              <div class="tool-group-label">Subviolation Mapping</div>
-              <div class="d-flex flex-wrap gap-2 mb-2">
-                <input type="file" id="mappingInput" class="form-control form-control-sm" accept=".csv" />
-                <input type="text" id="mapTargetColumn" class="form-control mini-input"
-                  placeholder="Target column (e.g. subviolation)" />
-              </div>
-              <div class="tool-chip-row">
-                <button class="tool-chip" onclick="uploadMappingCSV()">
-                  <i class="bi bi-file-earmark-arrow-up"></i> Upload mapping CSV
-                </button>
-                <button class="tool-chip success" onclick="applySubviolationMapping()">
-                  <i class="bi bi-diagram-3"></i> Apply mapping
-                </button>
-                <button class="tool-chip" onclick="toggleMappingSidebar()">
-                  <i class="bi bi-layout-sidebar-inset"></i> Toggle mapping preview
-                </button>
-              </div>
-            </div>
-
-            <!-- Barangay -->
-            <div class="col-12 col-lg-6">
-              <div class="tool-group-label">Barangay Mapping</div>
-              <div class="d-flex flex-wrap gap-2 mb-2">
-                <input type="file" id="barangayInput" class="form-control form-control-sm" accept=".csv" />
-                <input type="text" id="barangayTarget" class="form-control mini-input"
-                  placeholder="Target column name" />
-              </div>
-              <div class="tool-chip-row">
-                <button class="tool-chip" onclick="uploadBarangayCSV()">
-                  <i class="bi bi-file-earmark-arrow-up"></i> Upload barangay CSV
-                </button>
-                <button class="tool-chip success" onclick="applyBarangayMapping()">
-                  <i class="bi bi-arrow-right-circle"></i> Apply mapping
-                </button>
-                <button class="tool-chip" onclick="toggleBarangaySidebar()">
-                  <i class="bi bi-layout-sidebar-inset-reverse"></i> Toggle barangay preview
-                </button>
-                <button class="tool-chip danger" onclick="showUnalignedBarangays()">
-                  <i class="bi bi-exclamation-triangle"></i> Unaligned
-                </button>
-                <button class="tool-chip" onclick="exportUnaligned()">
-                  <i class="bi bi-download"></i> Export unaligned
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- OPTIONAL STATIC CHART IMAGE (IF BACKEND GENERATES PNG) -->
-        <div id="chart">
-          <img id="chartImage" src="" alt="" />
-        </div>
       </main>
-    </div>
-  </div>
-
-  <!-- Mapping sidebar -->
-  <div id="mappingSidebar" class="mapping-sidebar">
-    <div class="sidebar-header">
-      <span><strong>Mapping CSV Preview</strong></span>
-      <button onclick="toggleMappingSidebar()">×</button>
-    </div>
-    <div id="mappingPreview" class="p-2"></div>
-  </div>
-
-  <!-- Barangay sidebar -->
-  <div id="barangaySidebar" class="mapping-sidebar">
-    <div class="sidebar-header">
-      <span><strong>Barangay CSV Preview</strong></span>
-      <button onclick="toggleBarangaySidebar()">×</button>
-    </div>
-    <div id="barangayPreview" class="p-2"></div>
-
-    <!-- Unaligned Barangays Modal -->
-    <div id="unalignedModal" class="modal">
-      <div class="modal-content">
-        <button class="close-btn" onclick="closeUnalignedModal()">&times;</button>
-        <h3>Unaligned Barangays</h3>
-        <div id="unalignedTable"></div>
-      </div>
     </div>
   </div>
 
@@ -1055,7 +1383,6 @@
       <span><strong>Function Tutorial</strong></span>
       <button onclick="toggleTutorialSidebar()">×</button>
     </div>
-
     <div class="p-3">
       <!-- Tutorial Navigation -->
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -1100,30 +1427,50 @@
     </div>
   </div>
 
-  <!-- IMPORT SIDEBAR (separate sibling) -->
-  <div id="importSidebar" class="mapping-sidebar">
+  <!-- MAPPING SIDEBAR -->
+  <div id="mappingSidebar" class="mapping-sidebar">
     <div class="sidebar-header">
-      <span><strong>Import CSV</strong></span>
-      <button onclick="toggleImportSidebar()">×</button>
+      <span><strong>Mapping Preview</strong></span>
+      <button onclick="toggleMappingSidebar()">×</button>
     </div>
+    <div id="mappingPreview" class="p-3">
+      <!-- Mapping preview will be loaded here -->
+    </div>
+  </div>
 
-    <div class="p-3">
-      <div class="dropzone" id="importDropzone">
-        <div class="dropzone-icon">
-          <i class="bi bi-cloud-arrow-up-fill"></i>
+  <!-- BARANGAY SIDEBAR -->
+  <div id="barangaySidebar" class="mapping-sidebar">
+    <div class="sidebar-header">
+      <span><strong>Barangay Mapping Preview</strong></span>
+      <button onclick="toggleBarangaySidebar()">×</button>
+    </div>
+    <div id="barangayPreview" class="p-3">
+      <!-- Barangay preview will be loaded here -->
+    </div>
+  </div>
+
+  <!-- IMPORT MODAL -->
+  <div id="importModal" class="modal">
+    <div class="modal-content" style="width: 600px; max-width: 90%;">
+      <span onclick="closeImportModal()" class="close-btn">&times;</span>
+      <div class="modal-header">
+        <h3><i class="bi bi-upload"></i> Import CSV Data</h3>
+      </div>
+      <div class="modal-body">
+        <div class="dropzone" id="importDropzone">
+          <div class="dropzone-icon">
+            <i class="bi bi-cloud-arrow-up-fill"></i>
+          </div>
+          <div class="dropzone-title">Drop a CSV file here or click to browse</div>
+          <div class="dropzone-subtext">Only CSV format is supported.</div>
+          <input type="file" id="importFileInput" accept=".csv" />
+          <div class="file-name" id="importFileNameDisplay"></div>
         </div>
 
-        <div class="dropzone-title">Drop a CSV file here or click to browse</div>
-        <div class="dropzone-subtext">Only CSV format is supported.</div>
-
-        <input type="file" id="importFileInput" accept=".csv" />
-        <div class="file-name" id="importFileNameDisplay"></div>
-
-        <div class="mt-3 d-flex justify-content-center gap-2">
-          <button class="btn-soft" onclick="sidebarUploadCSV()">
+        <div class="mt-4 d-flex justify-content-center gap-3">
+          <button class="btn-soft" onclick="modalUploadCSV()">
             <i class="bi bi-upload"></i> Import CSV
           </button>
-
           <button class="magic-button" onclick="callAction('magic_clean')">
             <i class="bi bi-stars"></i> Magic Clean
             <span class="beta-label">Beta</span>
@@ -1156,28 +1503,324 @@
   </div>
 
   <script>
+    // Row selection and bulk delete functionality
+    let selectedRows = new Set();
+    let isSelecting = false;
+    let selectionTimer = null;
+    let selectionMode = false; // Flag to indicate selection mode is active
+
+    function initializeRowSelection() {
+      const table = document.querySelector('#output table.dataframe');
+      if (!table) {
+        console.log('No table found for row selection');
+        return;
+      }
+
+      const rows = table.querySelectorAll('tbody tr');
+      console.log(`Initializing row selection for ${rows.length} rows`);
+      
+      // Clear existing event listeners by cloning nodes
+      rows.forEach(row => {
+        const newRow = row.cloneNode(true);
+        row.parentNode.replaceChild(newRow, row);
+      });
+
+      // Get fresh reference to rows after cloning
+      const freshRows = table.querySelectorAll('tbody tr');
+      
+      freshRows.forEach((row, index) => {
+        // Check if this row should be selected (based on data-id)
+        const rowId = row.getAttribute('data-id');
+        if (selectedRows.has(rowId)) {
+          row.classList.add('selected');
+          console.log(`Row ${rowId} is selected`);
+        }
+
+        // Prevent text selection while selecting
+        row.addEventListener('selectstart', (e) => {
+          if (isSelecting) e.preventDefault();
+        });
+
+        // Mouse down - start selection timer
+        row.addEventListener('mousedown', (e) => {
+          console.log(`Mouse down on row ${rowId}, page ${Math.floor(index / 20) + 1}`);
+          if (e.button === 0) { // Left click only
+            if (!selectionMode) {
+              // First hold to activate selection mode
+              isSelecting = true;
+              row.classList.add('selecting');
+              
+              selectionTimer = setTimeout(() => {
+                // Hold detected - activate selection mode and select this row
+                console.log(`Selection mode activated on row ${rowId}`);
+                selectionMode = true;
+                toggleRowSelection(row);
+                row.classList.remove('selecting');
+              }, 500); // 500ms hold time
+            } else {
+              // Selection mode is active - simple click to toggle
+              toggleRowSelection(row);
+            }
+          }
+        });
+
+        // Mouse up - cancel selection timer if not held
+        row.addEventListener('mouseup', () => {
+          if (selectionTimer && !selectionMode) {
+            clearTimeout(selectionTimer);
+            selectionTimer = null;
+          }
+          row.classList.remove('selecting');
+          isSelecting = false;
+        });
+
+        // Mouse leave - cancel selection timer
+        row.addEventListener('mouseleave', () => {
+          if (selectionTimer && !selectionMode) {
+            clearTimeout(selectionTimer);
+            selectionTimer = null;
+          }
+          row.classList.remove('selecting');
+        });
+      });
+
+      // Global mouse up to reset selection state
+      document.addEventListener('mouseup', () => {
+        if (selectionTimer && !selectionMode) {
+          clearTimeout(selectionTimer);
+          selectionTimer = null;
+        }
+        document.querySelectorAll('.selecting').forEach(row => {
+          row.classList.remove('selecting');
+        });
+        isSelecting = false;
+      });
+    }
+
+    function unselectAllRows() {
+      selectedRows.clear();
+      selectionMode = false;
+      
+      // Remove selected class from all rows
+      document.querySelectorAll('.dataframe tbody tr.selected').forEach(row => {
+        row.classList.remove('selected');
+      });
+      
+      updateSelectionUI();
+    }
+
+    function toggleRowSelection(row) {
+      const rowId = row.getAttribute('data-id');
+      if (!rowId) return;
+
+      if (selectedRows.has(rowId)) {
+        selectedRows.delete(rowId);
+        row.classList.remove('selected');
+      } else {
+        selectedRows.add(rowId);
+        row.classList.add('selected');
+      }
+
+      updateSelectionUI();
+    }
+
+    function updateSelectionUI() {
+      const count = selectedRows.size;
+      const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const selectedCount = document.getElementById('selectedCount');
+
+      // Check if there's data loaded
+      const hasData = document.querySelector('#output table.dataframe') !== null;
+
+      // Show refresh button only when data is loaded
+      refreshBtn.style.display = hasData ? 'inline-flex' : 'none';
+
+      if (count > 0) {
+        bulkDeleteBtn.style.display = 'inline-flex';
+        cancelBtn.style.display = 'inline-flex';
+        selectedCount.textContent = count;
+      } else {
+        bulkDeleteBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+        selectedCount.textContent = '0';
+        // Also exit selection mode when no rows are selected
+        selectionMode = false;
+      }
+    }
+
+    async function bulkDeleteRows() {
+      if (selectedRows.size === 0) {
+        alert('No rows selected for deletion.');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete ${selectedRows.size} selected row(s)? This action cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/bulk_delete_rows', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            row_ids: Array.from(selectedRows)
+          })
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          document.getElementById('output').innerHTML = html;
+          initDataTable();
+          
+          // Clear visual selection first, then clear state
+          setTimeout(() => {
+            // Remove any remaining visual selection
+            document.querySelectorAll('.dataframe tbody tr.selected').forEach(row => {
+              row.classList.remove('selected');
+            });
+            
+            // Clear selection state after successful deletion
+            selectedRows.clear();
+            selectionMode = false;
+            updateSelectionUI();
+          }, 200);
+        } else {
+          alert('Error deleting rows. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error deleting rows. Please try again.');
+      }
+    }
+
+    // Helper: Update target column dropdowns with current data headers
+    function updateTargetColumnDropdowns() {
+      // Get column headers from the current data table
+      const table = document.querySelector('#output table');
+      if (!table) return;
+
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+
+      // Update barangay target dropdown
+      const barangayTarget = document.getElementById('barangayTarget');
+      if (barangayTarget) {
+        barangayTarget.innerHTML = '<option value="">Select target column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          barangayTarget.appendChild(option);
+        });
+      }
+
+      // Update duplicates column dropdown
+      const dupColumn = document.getElementById('dupColumn');
+      if (dupColumn) {
+        dupColumn.innerHTML = '<option value="">Select column for duplicates</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          dupColumn.appendChild(option);
+        });
+      }
+    }
+
     // Helper: Initialize DataTable on any new table
     function initDataTable() {
-  $("#mappingPreview table, #output table, #barangayPreview table, #unalignedTable table").each(function () {
-    if ($.fn.DataTable.isDataTable(this)) {
-      $(this).DataTable().destroy();
+      $("#mappingPreview table, #output table, #barangayPreview table, #unalignedTable table").each(function () {
+        if ($.fn.DataTable.isDataTable(this)) {
+          $(this).DataTable().destroy();
+        }
+
+        const dataTable = $(this).DataTable({
+          pageLength: 20,
+          lengthMenu: [10, 20, 50, 100],
+          responsive: true,
+          orderCellsTop: true,
+          fixedHeader: true,
+          drawCallback: function() {
+            // Reinitialize row selection after each draw (pagination, sorting, etc.)
+            const tableContainer = this.api().table().container();
+            if ($(tableContainer).closest('#output').length > 0) {
+              setTimeout(() => {
+                initializeRowSelection();
+              }, 100);
+            }
+          }
+        });
+      });
+
+      // Update target column dropdowns after initializing tables
+      updateTargetColumnDropdowns();
+
+      // Initialize row selection for data table
+      initializeRowSelection();
+
+      // Update UI to show refresh button when data is loaded
+      updateSelectionUI();
+
+      // Make output table editable after DataTable initialization
+      setTimeout(() => {
+        if ($("#output table").length) {
+          makeTableEditable();
+        }
+      }, 100);
     }
 
-    $(this).DataTable({
-      pageLength: 20,
-      lengthMenu: [10, 20, 50, 100],
-      responsive: true
-    });
-  });
 
-  // Make output table editable after DataTable initialization
-  setTimeout(() => {
-    if ($("#output table").length) {
-      makeTableEditable();
+    let activeTab = null;
+
+    function switchTab(tabName) {
+      const tabContent = document.getElementById(`${tabName}-tab`);
+      const tabButton = document.querySelector(`.tab-button[onclick*="${tabName}"]`);
+      const mainCard = document.querySelector('.card-pro');
+
+      // If clicking the same tab, toggle it off
+      if (activeTab === tabName) {
+        if (tabContent) tabContent.classList.remove('active');
+        if (tabButton) tabButton.classList.remove('active');
+        if (mainCard) mainCard.classList.remove('tab-open');
+        activeTab = null;
+        return;
+      }
+
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      // Remove active class from all tab buttons
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+      });
+
+      // Show the selected tab content
+      if (tabContent) {
+        tabContent.classList.add('active');
+      }
+
+      // Add active class to the clicked tab button
+      if (tabButton) {
+        tabButton.classList.add('active');
+      }
+
+      // Adjust main card width
+      if (mainCard) {
+        mainCard.classList.add('tab-open');
+      }
+
+      activeTab = tabName;
+
+      // Scroll the content to top
+      if (tabContent) {
+        tabContent.scrollTop = 0;
+      }
     }
-  }, 100);
-}
-
 
     function showLoader() {
       const loader = document.getElementById('loader');
@@ -1692,6 +2335,43 @@
       }
     }
 
+    async function dropUnalignedBarangays() {
+      const targetColumn = document.getElementById("barangayTarget").value.trim();
+      if (!targetColumn) {
+        alert("Please enter a target column name first.");
+        return;
+      }
+
+      if (!confirm("Are you sure you want to drop all unaligned barangays? This will remove rows that don't match the barangay template and export them to a CSV file.")) {
+        return;
+      }
+
+      // This will both export unaligned and drop them from the main dataset
+      const response = await fetch(`/export_unaligned_barangays?targetColumn=${encodeURIComponent(targetColumn)}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'unaligned_barangays.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // Refresh the main data preview
+        const html = await fetchWithLoader('/reload_data');
+        if (html) {
+          document.getElementById("output").innerHTML = html;
+          initDataTable();
+        }
+
+        alert("Unaligned barangays have been dropped and exported successfully!");
+      } else {
+        alert("Error processing unaligned barangays.");
+      }
+    }
+
     async function showUnalignedBarangays() {
       const html = await fetchWithLoader('/show_unaligned_barangays');
       if (html) {
@@ -1714,7 +2394,14 @@
     async function reloadData(page = 1) {
       showLoader();
       try {
-        const res = await fetch(`/reload_data?page=${page}`);
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const res = await fetch(`/reload_data?page=${page}&t=${timestamp}`, {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const html = await res.text();
 
@@ -1756,6 +2443,14 @@
       return confirmationMessage;
     });
 
+    function toggleImportModal() {
+      document.getElementById('importModal').style.display = 'block';
+    }
+
+    function closeImportModal() {
+      document.getElementById('importModal').style.display = 'none';
+    }
+
     function toggleImportSidebar() {
       const sidebar = document.getElementById("importSidebar");
       document.body.classList.toggle("sidebar-open");
@@ -1781,6 +2476,28 @@
         document.getElementById("output").innerHTML = html;
         initDataTable();
         toggleImportSidebar();
+      }
+    }
+
+    async function modalUploadCSV() {
+      const fileInput = document.getElementById('importFileInput');
+      if (!fileInput.files.length || !isCSV(fileInput.files[0])) {
+        alert("❌ Only CSV files are allowed.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      const html = await fetchWithLoader('/load_csv', {
+        method: "POST",
+        body: formData
+      });
+
+      if (html) {
+        document.getElementById("output").innerHTML = html;
+        initDataTable();
+        closeImportModal();
       }
     }
 
@@ -2076,15 +2793,15 @@
         features: ["State synchronization", "Preserves DataTables settings", "Full dataset reload"],
         note: "Useful after background operations or when display seems out of sync."
       },
-      {
-        title: "Barangay Mapping",
-        icon: "bi-geo-alt",
-        route: "/upload_barangay_csv & /apply_barangay_mapping",
-        description: "Standardize barangay names using official templates.",
-        usage: "Upload barangay template CSV, then apply mapping to address columns.",
-        features: ["Template matching", "Parentheses handling", "Case-insensitive matching"],
-        note: "Fixes common barangay name variations and standardizes formatting."
-      }
+      // {
+      //   title: "Barangay Mapping",
+      //   icon: "bi-geo-alt",
+      //   route: "/upload_barangay_csv & /apply_barangay_mapping",
+      //   description: "Standardize barangay names using official templates.",
+      //   usage: "Upload barangay template CSV, then apply mapping to address columns.",
+      //   features: ["Template matching", "Parentheses handling", "Case-insensitive matching"],
+      //   note: "Fixes common barangay name variations and standardizes formatting."
+      // }
     ];
 
     let currentTutorialIndex = 0;
@@ -2150,11 +2867,11 @@
     function previousTutorial() {
       if (currentTutorialIndex > 0) {
         currentTutorialIndex--;
-        updateTutorialContent();
+        updateTutorialContent();  
       }
     }
 
   </script>
-</body>
 
+</body>
 </html>

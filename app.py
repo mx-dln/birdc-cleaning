@@ -981,11 +981,32 @@ def show_unaligned_barangays():
     # Ensure all addresses are strings
     uploaded_df['ConsumerAddress'] = uploaded_df['ConsumerAddress'].astype(str).str.strip()
 
-    # Get template barangay list
+    # Get template barangay list (both original and cleaned versions)
     template_list = barangay_df['Barangay'].astype(str).str.strip().tolist()
+    
+    # Also create cleaned version for matching
+    cleaned_template = []
+    for b in barangay_df['Barangay']:
+        if isinstance(b, str):
+            b_clean = re.sub(r'\s*\(.*?\)\s*', '', b).strip().upper()
+            cleaned_template.append(b_clean)
 
-    # Find unaligned addresses (not in template)
-    unaligned = uploaded_df[~uploaded_df['ConsumerAddress'].isin(template_list)]
+    # Find unaligned addresses (not in template or cleaned template)
+    def is_aligned(address):
+        if not isinstance(address, str) or not address.strip():
+            return False
+        
+        address_upper = address.upper().strip()
+        # Check if exact match in template
+        if address in template_list:
+            return True
+        # Check if matches any cleaned template
+        for template_clean in cleaned_template:
+            if template_clean in address_upper:
+                return True
+        return False
+    
+    unaligned = uploaded_df[~uploaded_df['ConsumerAddress'].apply(is_aligned)]
 
     if unaligned.empty:
         return "<p><b>All addresses are aligned with the template.</b></p>"
@@ -1011,10 +1032,33 @@ def export_and_drop_unaligned_barangays():
 
     # Ensure all addresses are strings
     uploaded_df[target_column] = uploaded_df[target_column].astype(str).str.strip()
+    
+    # Get template barangay list (both original and cleaned versions)
     template_list = barangay_df['Barangay'].astype(str).str.strip().tolist()
+    
+    # Also create cleaned version for matching
+    cleaned_template = []
+    for b in barangay_df['Barangay']:
+        if isinstance(b, str):
+            b_clean = re.sub(r'\s*\(.*?\)\s*', '', b).strip().upper()
+            cleaned_template.append(b_clean)
 
-    # Find unaligned addresses
-    unaligned = uploaded_df[~uploaded_df[target_column].isin(template_list)]
+    # Find unaligned addresses (not in template or cleaned template)
+    def is_aligned(address):
+        if not isinstance(address, str) or not address.strip():
+            return False
+        
+        address_upper = address.upper().strip()
+        # Check if exact match in template
+        if address in template_list:
+            return True
+        # Check if matches any cleaned template
+        for template_clean in cleaned_template:
+            if template_clean in address_upper:
+                return True
+        return False
+    
+    unaligned = uploaded_df[~uploaded_df[target_column].apply(is_aligned)]
 
     if unaligned.empty:
         return "<p><b>No unaligned addresses to export or drop.</b></p>"
@@ -1024,8 +1068,9 @@ def export_and_drop_unaligned_barangays():
     unaligned.to_csv(output, index=False)
     output.seek(0)
 
-    # Drop unaligned rows from uploaded_df
-    uploaded_df = uploaded_df[uploaded_df[target_column].isin(template_list)]
+    # RETAIN MAPPED BARANGAYS - Drop only the unaligned rows
+    aligned = uploaded_df[uploaded_df[target_column].apply(is_aligned)]
+    uploaded_df = aligned  # Keep only the aligned/mapped barangays
 
     return send_file(
         io.BytesIO(output.getvalue().encode()),
@@ -1034,6 +1079,41 @@ def export_and_drop_unaligned_barangays():
         download_name='unaligned_barangays.csv'
     )
 
+    
+
+@app.route('/bulk_delete_rows', methods=['POST'])
+def bulk_delete_rows():
+    global uploaded_df
+    try:
+        data = request.get_json()
+        row_ids = data.get('row_ids', [])
+        
+        if not row_ids:
+            return "No row IDs provided.", 400
+            
+        # Convert string IDs to integers (they come from data-id attributes)
+        row_indices = [int(id) for id in row_ids]
+        
+        # Save history before deletion
+        save_history()
+        
+        # Get original count
+        before_count = len(uploaded_df)
+        
+        # Remove selected rows by index
+        uploaded_df = uploaded_df.drop(row_indices)
+        
+        # Reset index to ensure continuous row IDs
+        uploaded_df = uploaded_df.reset_index(drop=True)
+        
+        after_count = len(uploaded_df)
+        deleted_count = before_count - after_count
+        
+        return f"<p><b>Deleted {deleted_count} row(s) successfully.</b></p>" + dataframe_to_html_with_id(uploaded_df)
+        
+    except Exception as e:
+        print(f"Error in bulk_delete_rows: {str(e)}")
+        return f"Error deleting rows: {str(e)}", 500
 
 
 @app.route('/reload_data')
@@ -1088,4 +1168,4 @@ def update_cell():
 if __name__ == "__main__":
     if not os.path.exists('static'):
             os.makedirs('static')
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="127.0.0.1", port=5001, debug=True)
