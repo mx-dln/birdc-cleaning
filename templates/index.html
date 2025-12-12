@@ -571,6 +571,22 @@
       font-size: 12px;
     }
 
+    /* Edit Button Styles */
+    .edit-btn {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    tr:hover .edit-btn {
+      opacity: 1;
+    }
+    
+    .edit-btn:hover {
+      background-color: #6366f1 !important;
+      border-color: #6366f1 !important;
+      color: white !important;
+    }
+
     /* Chart area */
     #chart img {
       width: 100%;
@@ -636,18 +652,31 @@
       right: -420px;
       width: 400px;
       height: 100vh;
-      background: #ffffff;
-      border-left: 1px solid #e5e7eb;
+      background: white;
       overflow-y: auto;
-      padding: 0;
+      border-left: 1px solid #e5e7eb;
       box-shadow: -2px 0 18px rgba(15, 23, 42, 0.2);
       transition: right 0.3s ease;
-      z-index: 1000;
+      z-index: 9999;
     }
 
     .mapping-sidebar.open {
       right: 0;
     }
+
+    .sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9fafb;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
 
     .sidebar-header {
       display: flex;
@@ -881,8 +910,8 @@
       flex-direction: column;
       min-width: 0;
       /* Fix for flexbox overflow */
-      margin-right: 34px;
-      /* Space for fixed tab bar */
+      margin-right: 0;
+      /* No margin needed with fixed tabs */
       background: #fff;
       border-radius: 8px 0 0 8px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -890,8 +919,8 @@
     }
 
     .card-pro.tab-open {
-      margin-right: 390px;
-      /* Adjusted for moved tab content */
+      margin-right: 0;
+      /* No margin needed with fixed tabs */
     }
 
     .card-pro .card-body {
@@ -912,10 +941,7 @@
       position: relative;
     }
 
-    .operations-sidebar:hover {
-      transform: translateX(0);
-    }
-
+    
     .operations-sidebar .card-pro {
       margin-right: 0;
       border-radius: 0;
@@ -929,7 +955,7 @@
       overflow: hidden;
     }
 
-    /* Vertical Tabs */
+    /* Vertical Tabs - Fixed positioning */
     .vertical-tabs {
       width: 30px;
       min-width: 60px;
@@ -937,8 +963,12 @@
       display: flex;
       flex-direction: column;
       border-left: 1px solid #e2e8f0;
-      position: relative;
-      z-index: 2;
+      position: fixed;
+      right: 0;
+      top: 60px;
+      bottom: 0;
+      z-index: 1001;
+      height: calc(100vh - 60px);
     }
 
     .vertical-tabs .tab-button {
@@ -982,7 +1012,6 @@
     .vertical-tabs .tab-button:hover {
       background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
       color: #1e293b;
-      transform: translateX(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       border-left-color: #6366f1;
     }
@@ -1003,9 +1032,7 @@
       color: #6366f1;
       font-weight: 700;
       position: relative;
-      right: -2px;
       border-right: 2px solid #ffffff;
-      transform: translateX(-2px);
       box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
       z-index: 10;
     }
@@ -1031,10 +1058,10 @@
 
     /* Tab Content */
     .tab-content {
-      position: absolute;
-      right: 95px;
-      /* Moved 10px more to the left */
-      top: 0;
+      position: fixed;
+      right: 60px;
+      /* Adjusted for fixed tabs */
+      top: 60px;
       bottom: 0;
       display: none;
       flex-direction: column;
@@ -1047,6 +1074,8 @@
       box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
       border-radius: 16px 0 0 16px;
       backdrop-filter: blur(10px);
+      z-index: 1000;
+      height: calc(100vh - 60px);
     }
 
     .tab-content::before {
@@ -1182,10 +1211,7 @@
           <button class="btn-ghost" onclick="showAboutModal()" title="About App">
             <i class="bi bi-info-circle"></i> About
           </button>
-          <button class="btn-ghost" onclick="loadSample()">
-            <i class="bi bi-database"></i> Load Sample
-          </button>
-          <button class="btn-ghost" style="background-color: #10b981; color: white;" onclick="exportCSV()">
+                    <button class="btn-ghost" style="background-color: #10b981; color: white;" onclick="exportCSV()">
             <i class="bi bi-download"></i> Export CSV
           </button>
           <div class="user-avatar">
@@ -1413,6 +1439,32 @@
                         </button>
                         <button class="tool-chip" onclick="exportUnaligned()">
                           <i class="bi bi-download"></i> Export unaligned
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="col-12">
+                      <hr>
+                      <div class="tool-group-label">
+                      DTI Business Mapping & Violation Detection
+                      <div class="help-circle">
+                        ?
+                        <div class="help-tooltip">
+                          Automatically map Line of Business to DTI categories and detect potential violations. Uses advanced pattern matching to categorize businesses and flag compliance issues.
+                        </div>
+                      </div>
+                    </div>
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <select id="dtiTargetColumn" class="form-select mini-select" style="max-width:200px;">
+                          <option value="">Select target column</option>
+                        </select>
+                      </div>
+                      <div class="tool-chip-row">
+                        <button class="tool-chip success" onclick="applyDTIMapping()">
+                          <i class="bi bi-shield-exclamation"></i> Apply DTI Mapping & Violation Detection
+                        </button>
+                        <button class="tool-chip" onclick="applyCrimeMapping()">
+                          <i class="bi bi-bank2"></i> Apply Crime Subviolation Mapping
                         </button>
                       </div>
                     </div>
@@ -1921,6 +1973,18 @@
         });
       }
 
+      // Update DTI mapping target column dropdown
+      const dtiTargetColumn = document.getElementById('dtiTargetColumn');
+      if (dtiTargetColumn) {
+        dtiTargetColumn.innerHTML = '<option value="">Select target column</option>';
+        headers.forEach(header => {
+          const option = document.createElement('option');
+          option.value = header;
+          option.textContent = header;
+          dtiTargetColumn.appendChild(option);
+        });
+      }
+
       // Update Transform tab dropdowns
       const dtypeColumn = document.getElementById('dtypeColumn');
       if (dtypeColumn) {
@@ -2003,10 +2067,17 @@
 
       // Make output table editable after DataTable initialization
       setTimeout(() => {
-        if ($("#output table").length) {
+        if ($("#output table").length && $("#output table").hasClass('dataTable')) {
           makeTableEditable();
+        } else {
+          console.log("Table not ready for editing, retrying...");
+          setTimeout(() => {
+            if ($("#output table").length) {
+              makeTableEditable();
+            }
+          }, 500);
         }
-      }, 100);
+      }, 200);
     }
 
 
@@ -2546,6 +2617,405 @@
       }
     }
 
+    async function applyDTIMapping() {
+      const targetCol = document.getElementById("dtiTargetColumn").value;
+      if (!targetCol) return alert("Please select a target column for DTI mapping.");
+      const html = await fetchWithLoader(`/apply_dti_mapping?target_col=${encodeURIComponent(targetCol)}`);
+      if (html) {
+        document.getElementById("output").innerHTML = html;
+        initDataTable();
+        updateSelectionUI();
+      }
+    }
+
+    async function applyCrimeMapping() {
+      const targetCol = document.getElementById("dtiTargetColumn").value;
+      if (!targetCol) return alert("Please select a target column for crime subviolation mapping.");
+      const html = await fetchWithLoader(`/apply_crime_mapping?target_col=${encodeURIComponent(targetCol)}`);
+      if (html) {
+        document.getElementById("output").innerHTML = html;
+        initDataTable();
+        updateSelectionUI();
+      }
+    }
+
+    function editRow(button) {
+      const row = button.closest('tr');
+      const rowId = button.getAttribute('data-row-id');
+      const cells = row.querySelectorAll('td');
+      
+      // Skip the first cell (edit button) and header row
+      const table = document.querySelector('#output table');
+      const headers = Array.from(table.querySelectorAll('thead th')).slice(1).map(th => th.textContent.trim());
+      
+      // Create edit modal with improved UI
+      const modal = document.createElement('div');
+      modal.className = 'edit-modal';
+      modal.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        padding: 0;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        z-index: 10000;
+        max-width: 700px;
+        max-height: 85vh;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        animation: modalSlideIn 0.3s ease-out;
+      `;
+      
+      // Add animation keyframes
+      if (!document.querySelector('#modal-animations')) {
+        const style = document.createElement('style');
+        style.id = 'modal-animations';
+        style.textContent = `
+          @keyframes modalSlideIn {
+            from {
+              opacity: 0;
+              transform: translate(-50%, -45%) scale(0.95);
+            }
+            to {
+              opacity: 1;
+              transform: translate(-50%, -50%) scale(1);
+            }
+          }
+          .edit-modal-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 20px 24px;
+            border-radius: 16px 16px 0 0;
+            position: relative;
+          }
+          .edit-modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+          }
+          .edit-modal-footer {
+            padding: 20px 24px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 0 0 16px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .edit-form-group {
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+          }
+          .edit-form-group:hover {
+            transform: translateX(4px);
+          }
+          .edit-form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .edit-form-input {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background: white;
+          }
+          .edit-form-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            transform: translateY(-1px);
+          }
+          .edit-btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+          }
+          .edit-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+          }
+          .edit-btn-secondary {
+            background: white;
+            border: 2px solid #e5e7eb;
+            color: #6b7280;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+          }
+          .edit-btn-secondary:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+          }
+          .edit-changes-indicator {
+            font-size: 12px;
+            color: #6b7280;
+            font-style: italic;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      let formHtml = `
+        <div class="edit-modal-header">
+          <h5 class="mb-0 d-flex align-items-center">
+            <i class="bi bi-pencil-square me-2"></i>
+            Edit Row #${rowId}
+          </h5>
+          <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" onclick="closeEditModal(this)"></button>
+        </div>
+        <div class="edit-modal-body">
+          <div class="row g-3">
+      `;
+      
+      headers.forEach((header, index) => {
+        const cellIndex = index + 1; // Skip edit button column
+        const currentValue = cells[cellIndex] ? cells[cellIndex].textContent.trim() : '';
+        formHtml += `
+          <div class="col-md-6">
+            <div class="edit-form-group">
+              <label class="edit-form-label">${header}</label>
+              <input type="text" class="edit-form-input w-100" id="col_${index}" value="${currentValue}" data-column="${header}" data-original="${currentValue}">
+            </div>
+          </div>
+        `;
+      });
+      
+      formHtml += `
+          </div>
+        </div>
+        <div class="edit-modal-footer">
+          <div class="edit-changes-indicator">
+            <i class="bi bi-info-circle me-1"></i>
+            Modified fields will be highlighted
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="edit-btn-secondary" onclick="closeEditModal(this)">
+              <i class="bi bi-x-lg me-1"></i> Cancel
+            </button>
+            <button type="button" class="edit-btn-primary" onclick="saveRowEdit(${rowId}, this)">
+              <i class="bi bi-check-lg me-1"></i> Save Changes
+            </button>
+          </div>
+        </div>
+      `;
+      
+      modal.innerHTML = formHtml;
+      document.body.appendChild(modal);
+      
+      // Add change tracking
+      const inputs = modal.querySelectorAll('.edit-form-input');
+      inputs.forEach(input => {
+        input.addEventListener('input', function() {
+          if (this.value !== this.getAttribute('data-original')) {
+            this.style.borderColor = '#10b981';
+            this.style.backgroundColor = '#f0fdf4';
+          } else {
+            this.style.borderColor = '#e5e7eb';
+            this.style.backgroundColor = 'white';
+          }
+        });
+      });
+      
+      // Add backdrop with blur effect
+      const backdrop = document.createElement('div');
+      backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.4);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        animation: fadeIn 0.2s ease-out;
+      `;
+      
+      // Add fade animation
+      if (!document.querySelector('#backdrop-animations')) {
+        const backdropStyle = document.createElement('style');
+        backdropStyle.id = 'backdrop-animations';
+        backdropStyle.textContent = `
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+          }
+          @keyframes modalSlideOut {
+            from {
+              opacity: 1;
+              transform: translate(-50%, -50%) scale(1);
+            }
+            to {
+              opacity: 0;
+              transform: translate(-50%, -55%) scale(0.95);
+            }
+          }
+          @keyframes slideInRight {
+            from {
+              opacity: 0;
+              transform: translateX(100%);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+          @keyframes slideOutRight {
+            from {
+              opacity: 1;
+              transform: translateX(0);
+            }
+            to {
+              opacity: 0;
+              transform: translateX(100%);
+            }
+          }
+        `;
+        document.head.appendChild(backdropStyle);
+      }
+      
+      backdrop.onclick = () => {
+        closeEditModal(modal.querySelector('.btn-close'));
+      };
+      document.body.appendChild(backdrop);
+      
+      // Focus first input
+      setTimeout(() => {
+        const firstInput = modal.querySelector('.edit-form-input');
+        if (firstInput) {
+          firstInput.focus();
+          firstInput.select();
+        }
+      }, 100);
+    }
+
+    function saveRowEdit(rowId, button) {
+      const modal = button.closest('.edit-modal');
+      const inputs = modal.querySelectorAll('.edit-form-input');
+      
+      const updates = [];
+      inputs.forEach(input => {
+        const columnName = input.getAttribute('data-column');
+        const newValue = input.value.trim();
+        const originalValue = input.getAttribute('data-original');
+        
+        if (newValue !== originalValue) {
+          updates.push({ columnName, newValue, originalValue });
+        }
+      });
+      
+      if (updates.length === 0) {
+        closeEditModal(button);
+        return;
+      }
+      
+      // Show loading state
+      const saveBtn = button;
+      const originalText = saveBtn.innerHTML;
+      saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Saving...';
+      saveBtn.disabled = true;
+      
+      // Process updates one by one
+      Promise.all(updates.map(update => {
+        const formData = new FormData();
+        formData.append('row_id', rowId);
+        formData.append('column_name', update.columnName);
+        formData.append('new_value', update.newValue);
+        formData.append('original_value', update.originalValue);
+        
+        return fetch('/update_cell', {
+          method: 'POST',
+          body: formData
+        });
+      })).then(() => {
+        closeEditModal(button);
+        // Show success message
+        showNotification('Changes saved successfully!', 'success');
+        // Update table directly without reload
+        updates.forEach(update => {
+          const table = document.querySelector('#output table');
+          const headers = Array.from(table.querySelectorAll('thead th')).slice(1).map(th => th.textContent.trim());
+          const colIndex = headers.indexOf(update.columnName);
+          if (colIndex !== -1) {
+            const row = table.querySelector(`tr[data-id="${rowId}"]`);
+            if (row) {
+              const cell = row.querySelectorAll('td')[colIndex + 1]; // +1 for edit button column
+              if (cell) {
+                cell.textContent = update.newValue;
+              }
+            }
+          }
+        });
+      }).catch(error => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+        showNotification('Error saving changes: ' + error.message, 'error');
+      });
+    }
+
+    function closeEditModal(button) {
+      const modal = button.closest('.edit-modal') || document.querySelector('.edit-modal');
+      const backdrop = document.querySelector('div[style*="backdrop-filter: blur"]');
+      if (modal) {
+        modal.style.animation = 'modalSlideOut 0.2s ease-in';
+        setTimeout(() => {
+          if (modal.parentNode) document.body.removeChild(modal);
+        }, 200);
+      }
+      if (backdrop) {
+        backdrop.style.animation = 'fadeOut 0.2s ease-in';
+        setTimeout(() => {
+          if (backdrop.parentNode) document.body.removeChild(backdrop);
+        }, 200);
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} position-fixed`;
+      notification.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 10001;
+        min-width: 300px;
+        animation: slideInRight 0.3s ease-out;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      `;
+      
+      notification.innerHTML = `
+        <div class="d-flex align-items-center">
+          <i class="bi bi-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+          ${message}
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease-in';
+        setTimeout(() => {
+          if (notification.parentNode) document.body.removeChild(notification);
+        }, 300);
+      }, 3000);
+    }
+
     async function uploadBarangayCSV() {
       const file = document.getElementById("barangayInput").files[0];
       const targetColumn = document.getElementById("barangayTarget").value.trim();
@@ -2795,16 +3265,7 @@
         features: ["Automatic encoding detection", "CSV file validation", "Clears history when loading new data"],
         note: "Only CSV files are supported. The file must have proper headers."
       },
-      {
-        title: "Load Sample Data",
-        icon: "bi-database",
-        route: "/load_sample",
-        description: "Load a pre-configured sample dataset with various data quality issues for testing.",
-        usage: "Click the 'Load Sample' button to populate the application with test data containing common issues.",
-        features: ["30 sample records", "Various data types", "Common quality issues", "Missing values", "Duplicates"],
-        note: "Perfect for testing cleaning functions without uploading your own data."
-      },
-      {
+            {
         title: "Remove Special Characters",
         icon: "bi-slash-circle",
         route: "/remove_special_chars",

@@ -12,6 +12,7 @@ from word2number import w2n
 from rapidfuzz import fuzz, process
 import string
 import io
+from difflib import SequenceMatcher
 
 
 app = Flask(__name__)
@@ -30,6 +31,7 @@ def dataframe_to_html_with_id(df):
     
     # HEADER
     html += "<thead><tr>"
+    html += "<th style='width: 50px;'>Edit</th>"
     for col in df.columns:
         html += f"<th>{col}</th>"
     html += "</tr></thead><tbody>"
@@ -37,12 +39,417 @@ def dataframe_to_html_with_id(df):
     # ROWS WITH data-id
     for i, row in df.iterrows():
         html += f"<tr data-id='{i}'>"
+        html += "<td><button class='btn btn-sm btn-outline-primary edit-btn' onclick='editRow(this)' data-row-id='" + str(i) + "'><i class='bi bi-pencil'></i></button></td>"
         for val in row:
             html += f"<td>{val}</td>"
         html += "</tr>"
 
     html += "</tbody></table>"
     return html
+
+# ---------------------------
+# DTI Mapping Functions
+# ---------------------------
+def normalize_text(text):
+    # Handle NaN/float values by converting to empty string
+    if pd.isna(text) or text is None:
+        return ""
+    
+    s = str(text)  # Convert to string first
+    # unify separators, remove excessive punctuation, keep words
+    s = s.replace("–", "-").replace("—", "-").replace("&", " and ")
+    s = re.sub(r"[()\"'<>;:]", " ", s)
+    s = re.sub(r"[/\\_\[\]\{\}]", " ", s)
+    s = re.sub(r"[^0-9A-Za-z\-_\.&, ]+", " ", s)
+    s = re.sub(r"\s+", " ", s)
+    return s.strip().lower()
+
+# DTI categories (canonical strings)
+DTI_CATEGORIES = {
+    "Manufacturing Of Essential Goods": "Manufacturing Of Essential Goods",
+    "Food And Beverages (Only Non-Alcoholic Drinks)": "Food And Beverages (Only Non-Alcoholic Drinks)",
+    "Essential Retail": "Essential Retail (E.G., Groceries, Markets, Convenience Stores, Drug Stores)",
+    "Food_Preparation_TakeOut": "Food Preparation Insofar As Take-Out And Delivery Services",
+    "Water-Refilling Stores": "Water-Refilling Stores",
+    "Laundry Services": "Laundry Services (Including Self-Service)",
+    "Gasoline Stations": "Gasoline Stations",
+    "Construction Projects": "Public And Private Construction Projects That Are Essential...",
+    "Publishing And Printing": "Publishing And Printing Services...",
+    "Veterinary Activities": "Veterinary Activities",
+    "Hotel/Accommodation": "Hotel And Other Accommodation Establishments",
+    "Hardware Stores": "Hardware Stores",
+    "Clothing And Accessories": "Clothing And Accessories",
+    "Bookstore/OfficeSupplies": "Bookstores And School And Office Supplies Stores",
+    "Baby Supplies": "Baby Or Infant Care Supplies Stores",
+    "Pet Shops": "Pet Shops, Pet Food And Pet Care Supplies",
+    "IT/Computer": "It, Communications, And Electronic Equipment",
+    "Flower/Jewelry": "Flower, Jewelry, Novelty, Antique, Perfume Shops",
+    "Toy Store": "Toy Store (With Playgrounds And Amusement Area Closed)",
+    "Music Stores": "Music Stores",
+    "Art Galleries": "Art Galleries (Selling Only)",
+    "Firearms": "Firearms And Ammunition Trading Establishment",
+    "Salon/Barber": "Barbershops And Salons, Provided That They Are Compliant With Dti-Issued Protocols",
+    "Gyms/Fitness": "Gyms/Fitness Studios And Sports Facilities",
+    "Internet/ComputerShops": "Internet And Computer Shops (Subject To Strict Health Protocols) Only For Work Or Educational Purposes Only",
+    "Funeral": "Funeral And Embalming Services",
+    "AutoRepair": "Repair Of Motor Vehicles, Motorcycles, And Bicycles, (Including Vulcanizing Shops, Battery Repair Shops, Auto Repair Shops, Car Wash)",
+    "Delivery/Logistics": "Delivery And Courier Services, Whether In-House Or Outsourced Transporting Food, Medicine, Or Other Essential Goods, Including Clothing, Accessories, Hardware, House Wares, School And Office Supplies, As Well As Pet Food And Other Veterinary Products",
+    "RealEstate Leasing": "Real Estate Activities (Including Parking Space Leasing Companies) Leasing",
+    "Dining Dine In": "Dining/ Restaurants Dine In",
+    "Dining Take Out": "Dining/ Restaurants Delivery And Take-Out Only",
+    "Office/Admin": "Office Administrative And Office Support (Such As Photocopying, Billing, And Record Keeping Services)",
+    "Other Services": "Other Services Such As Photography Services Fashion, Industrial, Graphic, And Interior Design)"
+}
+
+DTI_CANONICAL = list(DTI_CATEGORIES.values())
+
+# DTI mapping rules
+RULE_DEFS = [
+    # priority 1: Manufacturing (food processors)
+    (r"\b(food processor|food products|food processing|meat processor|meat processing|frozen good|frozen goods|can[n]?ery|processing plant|packing plant|packer)\b", "Manufacturing Of Essential Goods", 1),
+
+    # priority 2: Dining / Food preparation (take-out)
+    (r"\b(burger stand|food stand|food stall|snack bar|snackbar|panciteria|kitchen|food services|refreshment|refreshments|refreshment stand|grill|grilled|bbq|barbecue)\b", "Food_Preparation_TakeOut", 2),
+
+    # priority 3: Dining dine-in explicit
+    (r"\b(restaurant|resto|eatery|kainan|dine in|dine-in|diner|vídeoke|videoke|karaoke.*bar|license to serve)\b", "Dining Dine In", 3),
+
+    # priority 4: Essential retail specifics
+    (r"\b(sari[- ]?sari|grocery|groceries|grocer|rice retailer|rice seller|rice|corn retailer|corn|dried fish|dried-fish|driedfish|vegetable vendor|veg vendor|meat vendor|fish vendor|market|market stall|market vendor|balot|balut|palay|corn trading)\b", "Essential Retail", 4),
+
+    # priority 5: Drugstore/pharmacy
+    (r"\b(drug store|pharmacy|botika|drugstore)\b", "Essential Retail", 5),
+
+    # priority 6: Water refill
+    (r"\b(water refill|water refilling|refilling station|water filling|water station)\b", "Water-Refilling Stores", 6),
+
+    # priority 7: Gasoline / fuel
+    (r"\b(gasoline|gas station|petrol station|fuel station|filling station)\b", "Gasoline Stations", 7),
+
+    # priority 8: Construction projects & suppliers
+    (r"\b(construction|construction services|contractor|construction supply|construction materials|aggregate|aggregates|cement|steel|builder|building contractor)\b", "Construction Projects", 8),
+
+    # priority 9: Hardware / lumber / DIY
+    (r"\b(hardware|lumber|hardware store|construction supply - retail|construction supply)\b", "Hardware Stores", 9),
+
+    # priority 10: Auto repair / motor parts / vulcanizing
+    (r"\b(vulcaniz|vulcanizing|vulcanize|auto repair|auto works|motor parts|auto supply|battery repair|repair shop|car wash|auto shop|mechanic)\b", "AutoRepair", 10),
+
+    # priority 11: Computer / internet shops / IT equipment
+    (r"\b(computer shop|internet cafe|internet shop|it and communication|computer repair|computer retailer|computer dealer)\b", "Internet/ComputerShops", 11),
+
+    # priority 12: Veterinary / pet related
+    (r"\b(veterinary|vet clinic|animal clinic|pet shop|pet food|veterinary clinic)\b", "Veterinary Activities", 12),
+
+    # priority 13: Hotel / boarding house / accommodation
+    (r"\b(hotel|motel|boarding house|apartelle|resort|lodging|accommodation)\b", "Hotel/Accommodation", 13),
+
+    # priority 14: Gym / fitness
+    (r"\b(gym|fitness|fitness studio|fitness center|sports facility|sports centre|sports center|gymnasium)\b", "Gyms/Fitness", 14),
+
+    # priority 15: Salon / barber
+    (r"\b(salon|barber|barbershop|parlor|parlour|beauty shop|beauty products)\b", "Salon/Barber", 15),
+
+    # priority 16: Printing / publishing / office equipment
+    (r"\b(print|printing|printing services|printing press|publisher|publishing)\b", "Publishing And Printing", 16),
+
+    # priority 17: Bookstore / school & office supplies
+    (r"\b(bookstore|school supplies|stationery|office supplies)\b", "Bookstore/OfficeSupplies", 17),
+
+    # priority 18: Clothing / boutique / ukay
+    (r"\b(boutique|clothes|clothing|apparel|ukay|garment|garments|tailor|dressmaker)\b", "Clothing And Accessories", 18),
+
+    # priority 19: Toy / music / art
+    (r"\b(toy store|toy\b|playground|amusement)\b", "Toy Store", 19),
+    (r"\bmusic store\b|\bmusic\b", "Music Stores", 19),
+    (r"\bart gallery\b|\bgallery\b", "Art Galleries", 19),
+
+    # priority 20: Real estate / lessor / renting / leasing
+    (r"\blessor\b|\bleasing\b|\brental\b|\brentals\b|\bapartment\b|\breal property lessor\b|\breal estate office\b", "RealEstate Leasing", 20),
+
+    # priority 21: Funeral
+    (r"\b(funeral|embalm|embalming)\b", "Funeral", 21),
+
+    # priority 22: Delivery/logistics
+    (r"\b(delivery|courier|logistics|freight|cargo|warehouse|warehousing|shipping|freight forward)\b", "Delivery/Logistics", 22),
+
+    # priority 23: Generic "dealer/trading" fallback
+    (r"\b(dealer|dealer of|dealer/|trading|trader|trading company|wholesaler|wholesale|retailer|retail)\b", None, 23),
+
+    # priority 99: Everything else -> Other Services
+    (r".+", "Other Services", 99),
+]
+
+# Token sets for special logic
+ESSENTIAL_KEYWORDS = {
+    "rice", "corn", "market", "grocery", "groceries", "sari-sari", "sari sari", "dried", "driedfish", "dried-fish",
+    "vegetable", "veg", "meat", "fish", "balut", "balot", "palay", "bakery", "bakery goods", "bakery shop"
+}
+MANUFACTURING_KEYWORDS = {
+    "food processor", "food processing", "processing", "packing", "packer", "meat processor", "frozen goods", "canning", "canner", "canning plant"
+}
+JUNK_KEYWORDS = {"junkshop", "junk shop", "scrap", "scrapyard", "waste dealer"}
+
+# DTI Subcategory Violation Detection Rules
+VIOLATION_RULES = {
+    "Dining Dine In": [
+        (r"\b(videoke|karaoke|bar|club|disco|pub|nightclub|live band|live music|entertainment)\b", "Prohibited entertainment services"),
+        (r"\b(alcohol|liquor|beer|wine|spirits|cocktail)\b", "Alcohol service violation"),
+        (r"\b(24 hours|24hr|24-hr|open 24|all night)\b", "Operating hours violation"),
+    ],
+    "Gyms/Fitness": [
+        (r"\b(pool|swimming|spa|sauna|steam|massage)\b", "Non-fitness services offered"),
+        (r"\b(group class|group fitness|dance class|yoga class|zumba)\b", "Group class violation"),
+    ],
+    "Internet/ComputerShops": [
+        (r"\b(gaming|games|online games|computer games|dota|lol|mobile legends)\b", "Gaming/computer games violation"),
+        (r"\b(social media|facebook|youtube|tiktok|instagram|twitter)\b", "Social media/entertainment use"),
+    ],
+    "Salon/Barber": [
+        (r"\b(spa|massage|facial|wellness|therapy)\b", "Non-salon services violation"),
+        (r"\b(nail salon|nail art|manicure|pedicure)\b", "Nail services may require separate permit"),
+    ],
+    "Hotel/Accommodation": [
+        (r"\b(short time|hourly|motel|drive-in)\b", "Motel-style operations violation"),
+        (r"\b(casino|gambling|betting)\b", "Gambling services violation"),
+    ],
+    "Construction Projects": [
+        (r"\b(demolition|wrecking|destruction)\b", "Demolition without proper permit"),
+        (r"\b(excavation|digging|trenching)\b", "Excavation work violation"),
+    ],
+    "AutoRepair": [
+        (r"\b(modified|modification|custom|race|tuning)\b", "Vehicle modification violation"),
+        (r"\b(paint|body work|dent|collision)\b", "Body work may require separate permit"),
+    ],
+    "Hardware Stores": [
+        (r"\b(explosive|dynamite|fireworks|pyrotechnics)\b", "Explosives/firearms violation"),
+        (r"\b(chemical|hazardous|toxic|corrosive)\b", "Hazardous materials violation"),
+    ],
+    "Essential Retail": [
+        (r"\b(alcohol|liquor|beer|wine|spirits)\b", "Alcohol sales without proper permit"),
+        (r"\b(tobacco|cigarette|vape|e-cigarette)\b", "Tobacco/vape sales violation"),
+    ],
+    "Food_Preparation_TakeOut": [
+        (r"\b(dine in|eat in|sit down|table|chair)\b", "Dine-in services violation"),
+        (r"\b(buffet|self service)\b", "Buffet service violation"),
+    ],
+    "Water-Refilling Stores": [
+        (r"\b(mineral|spring|alkaline|ionized)\b", "False health claims violation"),
+        (r"\b(delivery|home service)\b", "Delivery services may require separate permit"),
+    ],
+    "Laundry Services": [
+        (r"\b(dry cleaning|dry clean)\b", "Dry cleaning requires separate permit"),
+        (r"\b(industrial|commercial|heavy duty)\b", "Industrial laundry may require separate permit"),
+    ],
+    "Gasoline Stations": [
+        (r"\b(repair|mechanic|auto service)\b", "Auto repair services violation"),
+        (r"\b(convenience store|mini mart|sari sari)\b", "Retail services without proper permit"),
+    ],
+}
+
+def best_difflib_match(text: str, cutoff: float = 0.60):
+    """Return best matching canonical DTI category string and score, or (None, 0.0)."""
+    t = (text or "").lower().strip()
+    if not t:
+        return None, 0.0
+    best = None
+    best_score = 0.0
+    for cand in DTI_CANONICAL:
+        score = SequenceMatcher(None, t, cand.lower()).ratio()
+        if score > best_score:
+            best_score = score
+            best = cand
+    if best_score >= cutoff:
+        return best, best_score
+    return None, best_score
+
+def map_lob_to_dti(lob_text: str):
+    text = (lob_text or "").strip().lower()
+    if text == "":
+        return DTI_CATEGORIES["Other Services"], "empty", 1.0
+
+    t = text
+
+    # If the whole row mentions JUNKSHOP -> Other Services
+    if any(k in t for k in JUNK_KEYWORDS):
+        return DTI_CATEGORIES["Other Services"], "rule_junkshop", 1.0
+
+    # If any manufacturing keywords present -> manufacturing
+    if any(k in t for k in MANUFACTURING_KEYWORDS):
+        return DTI_CATEGORIES["Manufacturing Of Essential Goods"], "rule_manufacturing_keyword", 1.0
+
+    # token-level evaluation: gather matches with priorities
+    matches = []
+    for pattern, cat_key, priority in RULE_DEFS:
+        try:
+            if re.search(pattern, t):
+                matches.append((priority, cat_key, pattern))
+        except re.error:
+            continue
+
+    # If we have concrete category matches, pick the one with lowest priority value
+    concrete = [m for m in matches if m[1] is not None]
+    if concrete:
+        concrete.sort(key=lambda x: x[0])
+        chosen = concrete[0]
+        chosen_key = chosen[1]
+        if chosen_key in DTI_CATEGORIES:
+            return DTI_CATEGORIES[chosen_key], f"rule:{chosen[2]}", 1.0
+        else:
+            return str(chosen_key), f"rule:{chosen[2]}", 1.0
+
+    # If only generic dealer/trading matched or no match, inspect tokens to decide
+    tokens = set(re.findall(r"\b[\w\-]+\b", t))
+    if tokens & ESSENTIAL_KEYWORDS:
+        return DTI_CATEGORIES["Essential Retail"], "token_essential_keyword", 1.0
+
+    # Dealer/trader: try to detect what they deal in
+    if "dealer" in t or "trading" in t or "trader" in t or "wholesaler" in t or "wholesale" in t or "retailer" in t:
+        hardware_terms = {"hardware", "lumber", "cement", "steel", "construction supply", "aggregates", "aggregate"}
+        if any(h in t for h in hardware_terms):
+            return DTI_CATEGORIES["Hardware Stores"], "dealer_item:hardware", 1.0
+        if tokens & ESSENTIAL_KEYWORDS:
+            return DTI_CATEGORIES["Essential Retail"], "dealer_item:essential", 1.0
+        if any(x in t for x in ["motor parts", "auto supply", "auto parts", "car parts"]):
+            return DTI_CATEGORIES["AutoRepair"], "dealer_item:auto", 1.0
+        if any(x in t for x in ["veterinary", "animal", "feed", "fertilizer"]):
+            return DTI_CATEGORIES["Veterinary Activities"], "dealer_item:vet", 1.0
+        return DTI_CATEGORIES["Essential Retail"], "dealer_item:fallback_to_retail", 0.9
+
+    # As a last resort use difflib semantic fallback
+    match, score = best_difflib_match(t, cutoff=0.60)
+    if match:
+        return match, "difflib", float(round(score, 3))
+
+    # Final default: Other Services
+    return DTI_CATEGORIES["Other Services"], "default_other", 0.0
+
+def detect_dti_violations(lob_text: str, dti_category: str):
+    """
+    Detect potential DTI subcategory violations based on business description.
+    Returns: (violation_status, violation_details, violation_count)
+    """
+    text = (lob_text or "").strip().lower()
+    dti_cat = dti_category.strip()
+    
+    if text == "" or dti_cat == "":
+        return "No Data", "No business description or category", 0
+    
+    violations = []
+    
+    # Check if this DTI category has violation rules
+    if dti_cat in VIOLATION_RULES:
+        for pattern, violation_type in VIOLATION_RULES[dti_cat]:
+            try:
+                if re.search(pattern, text):
+                    violations.append(violation_type)
+            except re.error:
+                continue
+    
+    # Check for general violations that apply to all categories
+    general_violations = [
+        (r"\b(illegal|unlicensed|unregistered|black market|underground)\b", "Unlicensed/Illegal operations"),
+        (r"\b(minor|underage|below 18|below18)\b", "Minor employment/age restriction violation"),
+        (r"\b(loan|lending|money lending|usury|5-6)\b", "Money lending operations without permit"),
+        (r"\b(gambling|betting|casino|poker|jueteng|masiao)\b", "Gambling operations violation"),
+    ]
+    
+    for pattern, violation_type in general_violations:
+        try:
+            if re.search(pattern, text):
+                violations.append(violation_type)
+        except re.error:
+            continue
+    
+    if violations:
+        return "Potential Violation", " | ".join(violations), len(violations)
+    else:
+        return "Compliant", "No violations detected", 0
+
+# ---------------------------
+# Crime Subviolation Mapping Functions
+# ---------------------------
+
+def normalize_crime_text(text: str) -> str:
+    """Uppercase + collapse spaces for consistent matching."""
+    t = str(text).upper().strip()
+    t = re.sub(r"\s+", " ", t)
+    return t
+
+def load_crime_reference_data():
+    """Load crime subviolation and violation reference data."""
+    try:
+        subviolation_df = pd.read_csv("static/crime_subviolation.csv")
+        violation_df = pd.read_csv("static/crime_violation .csv")
+        
+        # Normalize keys for matching
+        subviolation_df["SubviolationName"] = subviolation_df["name"].astype(str)
+        subviolation_df["SubKey"] = subviolation_df["SubviolationName"].apply(normalize_crime_text)
+        
+        violation_df["ViolationName"] = violation_df["name"].astype(str)
+        
+        return subviolation_df, violation_df
+    except Exception as e:
+        print(f"Error loading crime reference data: {e}")
+        return None, None
+
+def map_crime_subviolation(main_df, target_column):
+    """Map subviolations and violations to main crime data."""
+    subviolation_df, violation_df = load_crime_reference_data()
+    
+    if subviolation_df is None or violation_df is None:
+        return main_df, "Error loading reference data"
+    
+    # Debug: Print sample data
+    print(f"Target column: {target_column}")
+    print(f"Sample main data: {main_df[target_column].head(10).tolist()}")
+    print(f"Sample subviolation names: {subviolation_df['name'].head(10).tolist()}")
+    
+    # Create key in main data
+    main_df["SubKey"] = main_df[target_column].apply(normalize_crime_text)
+    
+    # Debug: Print normalized keys
+    print(f"Sample main keys: {main_df['SubKey'].head(10).tolist()}")
+    print(f"Sample subviolation keys: {subviolation_df['SubKey'].head(10).tolist()}")
+    
+    # Check for any matches
+    main_keys = set(main_df["SubKey"].unique())
+    sub_keys = set(subviolation_df["SubKey"].unique())
+    matches = main_keys.intersection(sub_keys)
+    print(f"Potential matches: {len(matches)}")
+    if matches:
+        print(f"Sample matches: {list(matches)[:5]}")
+    
+    # Merge with subviolation table
+    merged = main_df.merge(
+        subviolation_df[["id", "SubviolationName", "SubKey", "violation_id"]],
+        on="SubKey",
+        how="left"
+    ).rename(columns={
+        "SubviolationName": "Subviolation Name"
+    })
+    
+    # Merge with violation table
+    merged = merged.merge(
+        violation_df[["id", "ViolationName"]],
+        left_on="violation_id",
+        right_on="id",
+        how="left"
+    ).rename(columns={
+        "ViolationName": "Violation Name"
+    })
+    
+    # Fill null genders if they exist
+    gender_fields = ["Complainant Gender", "Respondent Gender"]
+    for g in gender_fields:
+        if g in merged.columns:
+            merged[g] = merged[g].fillna("Unknown").replace("", "Unknown")
+    
+    # Add docket_number if not present
+    if "docket_number" not in merged.columns:
+        merged["docket_number"] = "NA"
+    
+    return merged, "Crime subviolation mapping completed successfully"
 
 @app.route('/export_csv')
 def export_csv():
@@ -916,6 +1323,128 @@ def upload_mapping_csv():
         return mapping_df.to_html()
     except Exception as e:
         return f"Error reading mapping file: {str(e)}", 400
+
+@app.route('/apply_dti_mapping')
+def apply_dti_mapping():
+    global uploaded_df
+
+    if uploaded_df.empty:
+        return "No data loaded.", 400
+
+    # Get target column from query parameter
+    target_col = request.args.get("target_col")
+    if not target_col:
+        return "Missing 'target_col' query parameter. Please select a column.", 400
+
+    if target_col not in uploaded_df.columns:
+        return f"Column '{target_col}' does not exist in the data.", 400
+
+    save_history()
+    
+    # Create LOB_clean column
+    uploaded_df["LOB_clean"] = uploaded_df[target_col].apply(normalize_text)
+    
+    # Apply DTI mapping
+    mapped = uploaded_df["LOB_clean"].apply(lambda x: pd.Series(map_lob_to_dti(x), index=["DTI_Sub_Category", "Match_Method", "Match_Score"]))
+    uploaded_df = pd.concat([uploaded_df, mapped], axis=1)
+    
+    # Apply violation detection
+    violation_results = uploaded_df.apply(lambda row: pd.Series(detect_dti_violations(row["LOB_clean"], row["DTI_Sub_Category"]), 
+                                                          index=["Violation_Status", "Violation_Details", "Violation_Count"]), axis=1)
+    uploaded_df = pd.concat([uploaded_df, violation_results], axis=1)
+    
+    # Generate summary
+    violation_summary = uploaded_df["Violation_Status"].value_counts().to_dict()
+    total_violations = len(uploaded_df[uploaded_df['Violation_Status'] == 'Potential Violation'])
+    total_compliant = len(uploaded_df[uploaded_df['Violation_Status'] == 'Compliant'])
+    
+    summary_html = f"""
+    <div class="alert alert-info">
+        <h6><i class="bi bi-info-circle"></i> DTI Mapping & Violation Detection Summary</h6>
+        <p><strong>Total Businesses:</strong> {len(uploaded_df)}</p>
+        <p><strong>Potential Violations:</strong> <span class="text-danger">{total_violations}</span></p>
+        <p><strong>Compliant:</strong> <span class="text-success">{total_compliant}</span></p>
+        <p><strong>Target Column:</strong> {target_col}</p>
+    </div>
+    """
+    
+    return summary_html + dataframe_to_html_with_id(uploaded_df)
+
+@app.route('/apply_dti_subcategory_only')
+def apply_dti_subcategory_only():
+    global uploaded_df
+
+    if uploaded_df.empty:
+        return "No data loaded.", 400
+
+    # Get target column from query parameter
+    target_col = request.args.get("target_col")
+    if not target_col:
+        return "Missing 'target_col' query parameter. Please select a column.", 400
+
+    if target_col not in uploaded_df.columns:
+        return f"Column '{target_col}' does not exist in the data.", 400
+
+    save_history()
+    
+    # Check if DTI Sub Category already exists
+    if "DTI Sub Category" in uploaded_df.columns:
+        return dataframe_to_html_with_id(uploaded_df)
+    
+    # Apply DTI mapping and extract only the DTI Sub Category
+    uploaded_df["DTI Sub Category"] = uploaded_df[target_col].apply(lambda x: map_lob_to_dti(str(x))[0])
+    
+    # Generate summary
+    summary_html = f"""
+    <div class="alert alert-success">
+        <h6><i class="bi bi-check-circle"></i> DTI Sub Category Mapping Complete</h6>
+        <p><strong>Total Businesses:</strong> {len(uploaded_df)}</p>
+        <p><strong>Target Column:</strong> {target_col}</p>
+        <p><strong>Column Added:</strong> DTI Sub Category</p>
+    </div>
+    """
+    
+    return summary_html + dataframe_to_html_with_id(uploaded_df)
+
+@app.route('/apply_crime_mapping')
+def apply_crime_mapping():
+    global uploaded_df
+
+    if uploaded_df.empty:
+        return "No data loaded.", 400
+
+    # Get target column from query parameter
+    target_col = request.args.get("target_col")
+    if not target_col:
+        return "Missing 'target_col' query parameter. Please select a column.", 400
+
+    if target_col not in uploaded_df.columns:
+        return f"Column '{target_col}' does not exist in the data.", 400
+
+    save_history()
+    
+    # Apply crime subviolation mapping
+    mapped_df, message = map_crime_subviolation(uploaded_df.copy(), target_col)
+    
+    if "Error" in message:
+        return message, 400
+    
+    uploaded_df = mapped_df
+    
+    # Generate summary
+    mapped_count = len(uploaded_df[uploaded_df['Subviolation Name'].notna()])
+    total_count = len(uploaded_df)
+    
+    summary_html = f"""
+    <div class="alert alert-success">
+        <h6><i class="bi bi-check-circle"></i> Crime Subviolation Mapping Complete</h6>
+        <p><strong>Total Records:</strong> {total_count}</p>
+        <p><strong>Successfully Mapped:</strong> {mapped_count}</p>
+        <p><strong>Target Column:</strong> {target_col}</p>
+    </div>
+    """
+    
+    return summary_html + dataframe_to_html_with_id(uploaded_df)
 
 @app.route('/apply_subviolation_mapping')
 def apply_subviolation_mapping():
